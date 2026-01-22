@@ -77,32 +77,92 @@ export default function Settings() {
                 <CardTitle>API Credentials</CardTitle>
               </div>
               <CardDescription>
-                Securely store keys for AI generation and Social posting.
+                Securely store keys for AI generation, Image sources, and Social posting.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               
               {/* OpenAI Section */}
               <div className="space-y-3">
-                <Label>OpenAI API Key (Content Generation)</Label>
-                <div className="relative">
-                  <Input 
-                    type={showKeys['openai'] ? "text" : "password"} 
-                    placeholder="sk-..." 
-                    className="pr-10 font-mono"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                    onClick={() => toggleShowKey('openai')}
-                  >
-                    {showKeys['openai'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <Label>AI Content Generation</Label>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Used for rewriting articles into Instagram captions. Model: <span className="font-mono text-foreground">gpt-4o</span>
-                </p>
+                
+                <div className="grid gap-3">
+                  <div className="relative">
+                    <Input 
+                      type={showKeys['openai'] ? "text" : "password"} 
+                      placeholder="OpenAI API Key (sk-...)" 
+                      className="pr-10 font-mono"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => toggleShowKey('openai')}
+                    >
+                      {showKeys['openai'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Model</Label>
+                      <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="gpt-4o">GPT-4o (Recommended)</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Temperature</Label>
+                      <Input type="number" step="0.1" min="0" max="2" defaultValue="0.7" className="h-10" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 mt-2">
+                    <Label className="text-xs text-muted-foreground">Custom System Prompt</Label>
+                    <textarea 
+                      className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="You are an expert social media manager for an alternative health brand..."
+                      defaultValue="You are an expert social media manager for an alternative health brand. Rewrite the provided news article into an engaging Instagram caption. Include a disclaimer that this is not medical advice. Use 8-12 hashtags."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Image Source Section */}
+              <div className="space-y-3">
+                <Label>Image Source</Label>
+                <div className="grid gap-3">
+                  <select 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    onChange={(e) => setShowKeys(prev => ({ ...prev, unsplash: e.target.value === 'unsplash', pexels: e.target.value === 'pexels' }))}
+                  >
+                    <option value="wikimedia">Wikimedia Commons (Free/No Key)</option>
+                    <option value="unsplash">Unsplash (Requires Key)</option>
+                    <option value="pexels">Pexels (Requires Key)</option>
+                    <option value="pixabay">Pixabay (Requires Key)</option>
+                  </select>
+
+                  <div className="relative">
+                    <Input 
+                      type={showKeys['image_api'] ? "text" : "password"} 
+                      placeholder="Image Service API Key (if required)" 
+                      className="pr-10 font-mono"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => toggleShowKey('image_api')}
+                    >
+                      {showKeys['image_api'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <Separator />
