@@ -114,9 +114,22 @@ export default function Review() {
               <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-2">
                    <Label className="text-xs">Model Override</Label>
-                   <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
-                     <option value="default">Use Global Settings</option>
-                     <option value="custom">Custom / Local</option>
+                   <select 
+                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                     onChange={(e) => {
+                       const input = document.getElementById('model-override-input');
+                       if (input) {
+                         if (e.target.value === 'custom') {
+                           input.removeAttribute('disabled');
+                           input.focus();
+                         } else {
+                           input.setAttribute('disabled', 'true');
+                         }
+                       }
+                     }}
+                   >
+                     <option value="default">Use Default (Configured in Settings)</option>
+                     <option value="custom">Override (Enter Model ID below)</option>
                    </select>
                  </div>
                  <div className="space-y-2">
@@ -131,7 +144,12 @@ export default function Review() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Model Name / ID</Label>
-                <Input placeholder="e.g. deepseek/deepseek-v3.2, gpt-4o" className="h-9 text-sm" />
+                <Input 
+                  id="model-override-input"
+                  placeholder="e.g. deepseek/deepseek-v3.2" 
+                  className="h-9 text-sm disabled:opacity-50 disabled:bg-muted/50" 
+                  disabled
+                />
               </div>
               <Button variant="secondary" className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors" onClick={handleRegenerate}>
                 <RefreshCw className="h-4 w-4" />
