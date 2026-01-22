@@ -6,16 +6,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const [showKeys, setShowKeys] = useState<Record<string, any>>({});
+  const [rssUrls, setRssUrls] = useState<string[]>([
+    "https://news.google.com/rss/search?q=alternative+health+OR+integrative+medicine&hl=en-US&gl=US&ceid=US:en"
+  ]);
   const { toast } = useToast();
 
   const toggleShowKey = (key: string) => {
     setShowKeys(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const addRssUrl = () => {
+    setRssUrls([...rssUrls, ""]);
+  };
+
+  const removeRssUrl = (index: number) => {
+    const newUrls = [...rssUrls];
+    newUrls.splice(index, 1);
+    setRssUrls(newUrls);
+  };
+
+  const updateRssUrl = (index: number, value: string) => {
+    const newUrls = [...rssUrls];
+    newUrls[index] = value;
+    setRssUrls(newUrls);
   };
 
   const handleSave = () => {
@@ -87,12 +106,36 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="rss-url">Google News RSS Feed URL</Label>
-                <Input 
-                  id="rss-url" 
-                  defaultValue="https://news.google.com/rss/search?q=alternative+health+OR+integrative+medicine&hl=en-US&gl=US&ceid=US:en" 
-                  className="font-mono text-xs"
-                />
+                <div className="flex items-center justify-between">
+                  <Label>Google News RSS Feed URLs (Priority Order)</Label>
+                  <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs" onClick={addRssUrl}>
+                    <Plus className="h-3 w-3" /> Add Source
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  {rssUrls.map((url, index) => (
+                    <div key={index} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-2.5 text-xs font-mono text-muted-foreground">#{index + 1}</span>
+                        <Input 
+                          value={url}
+                          onChange={(e) => updateRssUrl(index, e.target.value)}
+                          className="font-mono text-xs pl-8"
+                          placeholder="https://news.google.com/rss/..."
+                        />
+                      </div>
+                      {rssUrls.length > 1 && (
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeRssUrl(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  The system will attempt to find valid articles from Source #1 first. If no new items are found, it proceeds to #2, etc.
+                </p>
               </div>
               
               <div className="flex items-center justify-between border p-4 rounded-lg bg-muted/20">
