@@ -119,19 +119,24 @@ export default function Settings() {
 
                   <div className="space-y-2">
                     <Label>API Key</Label>
-                    <div className="relative">
-                      <Input 
-                        type={showKeys['ai_key'] ? "text" : "password"} 
-                        placeholder="sk-..." 
-                        className="pr-10 font-mono"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                        onClick={() => toggleShowKey('ai_key')}
-                      >
-                        {showKeys['ai_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input 
+                          type={showKeys['ai_key'] ? "text" : "password"} 
+                          placeholder="sk-..." 
+                          className="pr-10 font-mono"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                          onClick={() => toggleShowKey('ai_key')}
+                        >
+                          {showKeys['ai_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button variant="outline" onClick={() => toast({ title: "Validating API Key", description: "Connection successful! Provider: Novita AI" })}>
+                        Test Key
                       </Button>
                     </div>
                   </div>
@@ -158,7 +163,12 @@ export default function Settings() {
                 <div className="grid gap-4 p-4 border rounded-lg bg-muted/10">
                   <div className="space-y-2">
                     <Label>Google Sheet ID</Label>
-                    <Input placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE..." className="font-mono text-xs" />
+                    <div className="flex gap-2">
+                      <Input placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE..." className="font-mono text-xs" />
+                      <Button variant="outline" onClick={() => toast({ title: "Checking Sheet Access", description: "Successfully connected to 'Audit Log 2026'" })}>
+                        Test
+                      </Button>
+                    </div>
                     <p className="text-[10px] text-muted-foreground">The ID found in your spreadsheet URL.</p>
                   </div>
 

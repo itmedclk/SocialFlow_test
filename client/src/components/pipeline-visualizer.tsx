@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 interface StepProps {
   label: string;
@@ -9,17 +10,54 @@ interface StepProps {
   index: number;
 }
 
-export function PipelineVisualizer() {
-  const steps: StepProps[] = [
-    { label: "Cron Trigger", status: "completed", description: "09:00 PST", index: 0 },
-    { label: "RSS Feed", status: "completed", description: "Google News", index: 1 },
-    { label: "Dedupe Filter", status: "completed", description: "1 New Item", index: 2 },
-    { label: "AI Generation", status: "completed", description: "Caption & Tags", index: 3 },
-    { label: "Safety Check", status: "completed", description: "Claims & Len", index: 4 },
-    { label: "Docs Audit", status: "active", description: "Updating...", index: 5 },
-    { label: "Image Search", status: "pending", description: "Wikimedia", index: 6 },
-    { label: "Postly Sched", status: "pending", description: "11:00 PST", index: 7 },
-  ];
+interface PipelineVisualizerProps {
+  isRunning?: boolean;
+  onComplete?: () => void;
+}
+
+const INITIAL_STEPS: StepProps[] = [
+  { label: "Cron Trigger", status: "pending", description: "Waiting...", index: 0 },
+  { label: "RSS Feed", status: "pending", description: "Google News", index: 1 },
+  { label: "Dedupe Filter", status: "pending", description: "Check History", index: 2 },
+  { label: "AI Generation", status: "pending", description: "Caption & Tags", index: 3 },
+  { label: "Safety Check", status: "pending", description: "Claims & Len", index: 4 },
+  { label: "Docs Audit", status: "pending", description: "Create Record", index: 5 },
+  { label: "Image Search", status: "pending", description: "Source API", index: 6 },
+  { label: "Postly Sched", status: "pending", description: "11:00 PST", index: 7 },
+];
+
+export function PipelineVisualizer({ isRunning = false, onComplete }: PipelineVisualizerProps) {
+  const [steps, setSteps] = useState<StepProps[]>(INITIAL_STEPS);
+  const [currentStep, setCurrentStep] = useState(-1);
+
+  useEffect(() => {
+    if (isRunning) {
+      setCurrentStep(0);
+      setSteps(INITIAL_STEPS);
+    }
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (currentStep >= 0 && currentStep < steps.length) {
+      // Set current to active
+      setSteps(prev => prev.map((s, i) => 
+        i === currentStep ? { ...s, status: "active", description: "Processing..." } : s
+      ));
+
+      // Simulate processing time
+      const timer = setTimeout(() => {
+        setSteps(prev => prev.map((s, i) => 
+          i === currentStep ? { ...s, status: "completed", description: "Done" } : s
+        ));
+        setCurrentStep(prev => prev + 1);
+      }, 1500); // 1.5s per step
+
+      return () => clearTimeout(timer);
+    } else if (currentStep === steps.length) {
+      if (onComplete) onComplete();
+      setCurrentStep(-1);
+    }
+  }, [currentStep, steps.length, onComplete]);
 
   return (
     <div className="w-full overflow-x-auto pb-6 -mx-6 px-6 md:mx-0 md:px-0">
