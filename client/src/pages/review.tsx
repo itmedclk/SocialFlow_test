@@ -1,3 +1,4 @@
+import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,9 +116,6 @@ export default function Review() {
                    <Label className="text-xs">Model Override</Label>
                    <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
                      <option value="default">Use Global Settings</option>
-                     <option value="novita">Novita AI (Nous-Hermes)</option>
-                     <option value="openai">OpenAI (GPT-4o)</option>
-                     <option value="anthropic">Anthropic (Claude 3.5)</option>
                      <option value="custom">Custom / Local</option>
                    </select>
                  </div>
@@ -130,6 +128,10 @@ export default function Review() {
                      <option>Empathetic & Supportive</option>
                    </select>
                  </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Model Name / ID</Label>
+                <Input placeholder="e.g. gpt-4o, nous-hermes-2" className="h-9 text-sm" />
               </div>
               <Button variant="secondary" className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors" onClick={handleRegenerate}>
                 <RefreshCw className="h-4 w-4" />
