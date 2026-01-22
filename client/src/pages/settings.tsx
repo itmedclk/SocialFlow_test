@@ -262,6 +262,11 @@ export default function Settings() {
                   <p className="text-[10px] text-muted-foreground">Hard limit for IG safety buffer.</p>
                 </div>
                 <div className="space-y-2">
+                  <Label>Max Auto-Retries</Label>
+                  <Input type="number" defaultValue={3} />
+                  <p className="text-[10px] text-muted-foreground">Attempts before marking as failed.</p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
                   <Label>Forbidden Terms</Label>
                   <Input defaultValue="cure, miracle, guarantee, treat" />
                   <p className="text-[10px] text-muted-foreground">Comma separated words that trigger a halt.</p>

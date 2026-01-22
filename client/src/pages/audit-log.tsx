@@ -48,8 +48,8 @@ const MOCK_DATA: PostRecord[] = [
     caption_snippet: "Important safety update regarding...",
     image_credit: "Wikimedia",
     status: "failed",
-    reason: "Safety Check: Forbidden Term 'Cure'",
-    retry_count: 2,
+    reason: "Max retries exceeded (Caption safety check)",
+    retry_count: 4,
     guid: "rss:health:88991"
   },
   {
@@ -59,7 +59,7 @@ const MOCK_DATA: PostRecord[] = [
     caption_snippet: "Simple stretches to ease your...",
     image_credit: "Unsplash/YogaPro",
     status: "success",
-    retry_count: 1,
+    retry_count: 2,
     guid: "rss:health:88872"
   },
   {
