@@ -100,29 +100,38 @@ export default function Review() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                Generation Controls
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                  Generation Controls
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 text-primary border-primary/20">
+                  Config: Novita AI
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-2">
-                   <Label className="text-xs">Model</Label>
-                   <select className="w-full text-sm border rounded-md p-2 bg-background">
-                     <option>Novita / Nous-Hermes</option>
-                     <option>GPT-4o</option>
+                   <Label className="text-xs">Model Override</Label>
+                   <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                     <option value="default">Use Global Settings</option>
+                     <option value="novita">Novita AI (Nous-Hermes)</option>
+                     <option value="openai">OpenAI (GPT-4o)</option>
+                     <option value="anthropic">Anthropic (Claude 3.5)</option>
+                     <option value="custom">Custom / Local</option>
                    </select>
                  </div>
                  <div className="space-y-2">
-                   <Label className="text-xs">Tone</Label>
-                   <select className="w-full text-sm border rounded-md p-2 bg-background">
+                   <Label className="text-xs">Tone / Style</Label>
+                   <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
                      <option>Informative & Calm</option>
                      <option>Excited & Urgent</option>
-                     <option>Professional</option>
+                     <option>Professional & Clinical</option>
+                     <option>Empathetic & Supportive</option>
                    </select>
                  </div>
               </div>
-              <Button variant="secondary" className="w-full gap-2" onClick={handleRegenerate}>
+              <Button variant="secondary" className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors" onClick={handleRegenerate}>
                 <RefreshCw className="h-4 w-4" />
                 Regenerate Caption
               </Button>
