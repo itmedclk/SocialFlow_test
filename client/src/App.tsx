@@ -5,14 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import Settings from "@/pages/settings";
+import Pipeline from "@/pages/pipeline";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/pipeline" component={Dashboard} /> {/* Mock routes just pointing to dashboard for now */}
-      <Route path="/logs" component={Dashboard} />
-      <Route path="/settings" component={Dashboard} />
+      <Route path="/pipeline" component={Pipeline} />
+      <Route path="/logs" component={Pipeline} /> {/* Reusing pipeline view for logs for now */}
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
