@@ -1,0 +1,198 @@
+import { Layout } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  RefreshCw, 
+  Check, 
+  X, 
+  ExternalLink, 
+  Sparkles, 
+  Image as ImageIcon,
+  MessageSquare,
+  Save
+} from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function Review() {
+  const { toast } = useToast();
+  const [caption, setCaption] = useState(
+    "✨ Discover the power of mindfulness in your daily routine.\n\nRecent studies suggest that just 10 minutes a day can significantly reduce stress levels and improve overall well-being. It's not about emptying your mind, but rather observing the present moment without judgment.\n\nStart small today. Take 3 deep breaths right now. 🌿\n\nThis content is for informational purposes only and is not medical advice.\n\n#mindfulness #health #wellness #holistic #stressrelief #meditation #selfcare #mentalhealth"
+  );
+
+  const handleRegenerate = () => {
+    toast({
+      title: "Regenerating Content",
+      description: "Request sent to Novita AI model...",
+    });
+  };
+
+  const handleApprove = () => {
+    toast({
+      title: "Content Approved",
+      description: "Post scheduled and data saved to Google Sheet.",
+      variant: "default",
+    });
+  };
+
+  return (
+    <Layout>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Content Review</h1>
+          <p className="text-muted-foreground mt-1">
+            Review and refine AI-generated drafts before scheduling.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2 text-destructive hover:text-destructive">
+            <X className="h-4 w-4" />
+            Reject Draft
+          </Button>
+          <Button className="gap-2 shadow-lg shadow-primary/25" onClick={handleApprove}>
+            <Check className="h-4 w-4" />
+            Approve & Schedule
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
+        
+        {/* Left Column: Source & Controls */}
+        <div className="space-y-6 flex flex-col h-full">
+          <Card className="flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Source Article
+                </CardTitle>
+                <Badge variant="secondary">New Arrival</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-auto">
+              <h3 className="font-bold text-xl mb-2">
+                New Study Shows Benefits of Mindfulness for Stress Reduction
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Source: HealthNews Daily • 2 hours ago
+              </p>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+                <p>
+                  A groundbreaking study published in the Journal of Psychology demonstrates that brief mindfulness interventions can lower cortisol levels by up to 25% in high-stress individuals. The research followed 500 participants over a 6-week period...
+                </p>
+                <p className="mt-2">
+                  Key findings indicate that consistency matters more than duration. Even 5-10 minutes of daily practice showed measurable biological markers of stress reduction.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="bg-muted/20 border-t py-3">
+               <Button variant="ghost" size="sm" className="w-full gap-2">
+                 View Original Source <ExternalLink className="h-3 w-3" />
+               </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                Generation Controls
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-2">
+                   <Label className="text-xs">Model</Label>
+                   <select className="w-full text-sm border rounded-md p-2 bg-background">
+                     <option>Novita / Nous-Hermes</option>
+                     <option>GPT-4o</option>
+                   </select>
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-xs">Tone</Label>
+                   <select className="w-full text-sm border rounded-md p-2 bg-background">
+                     <option>Informative & Calm</option>
+                     <option>Excited & Urgent</option>
+                     <option>Professional</option>
+                   </select>
+                 </div>
+              </div>
+              <Button variant="secondary" className="w-full gap-2" onClick={handleRegenerate}>
+                <RefreshCw className="h-4 w-4" />
+                Regenerate Caption
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Preview & Edit */}
+        <div className="space-y-6 flex flex-col h-full">
+          <Tabs defaultValue="caption" className="flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+               <TabsList>
+                 <TabsTrigger value="caption" className="gap-2">
+                   <MessageSquare className="h-4 w-4" /> Caption
+                 </TabsTrigger>
+                 <TabsTrigger value="image" className="gap-2">
+                   <ImageIcon className="h-4 w-4" /> Image
+                 </TabsTrigger>
+               </TabsList>
+               <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                 <Sparkles className="h-3 w-3 text-amber-500" />
+                 AI Generated Draft
+               </div>
+            </div>
+
+            <TabsContent value="caption" className="flex-1 mt-0">
+              <Card className="h-full flex flex-col">
+                <CardContent className="flex-1 p-0">
+                   <Textarea 
+                     value={caption}
+                     onChange={(e) => setCaption(e.target.value)}
+                     className="h-full w-full resize-none border-0 focus-visible:ring-0 p-6 text-base leading-relaxed font-sans"
+                   />
+                </CardContent>
+                <CardFooter className="border-t bg-muted/10 py-2 px-4 flex justify-between items-center text-xs text-muted-foreground">
+                   <span>{caption.length} / 2200 characters</span>
+                   <span>12 hashtags detected</span>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="image" className="flex-1 mt-0">
+              <Card className="h-full overflow-hidden flex flex-col">
+                <div className="flex-1 bg-muted/30 relative group">
+                  <img 
+                    src="/sample-post.jpg" 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                     <Button variant="secondary">Change Image</Button>
+                  </div>
+                </div>
+                <CardFooter className="border-t p-4 bg-muted/10">
+                  <div className="w-full space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium">Image Credit</span>
+                      <span className="text-muted-foreground">Unsplash / Sarah Smith</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                       <span className="font-medium">License</span>
+                       <span className="text-emerald-600">Commercial Safe</span>
+                    </div>
+                  </div>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </Layout>
+  );
+}

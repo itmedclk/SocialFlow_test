@@ -74,58 +74,98 @@ export default function Settings() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-primary" />
-                <CardTitle>API Credentials</CardTitle>
+                <CardTitle>API & Service Credentials</CardTitle>
               </div>
               <CardDescription>
-                Securely store keys for AI generation, Image sources, and Social posting.
+                Configure AI providers, social platforms, and integration services.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-8">
               
-              {/* OpenAI Section */}
-              <div className="space-y-3">
+              {/* AI Provider Section */}
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>AI Content Generation</Label>
+                  <div className="space-y-0.5">
+                    <Label className="text-base">AI Model Configuration</Label>
+                    <p className="text-xs text-muted-foreground">Select your LLM provider for content generation.</p>
+                  </div>
                 </div>
                 
-                <div className="grid gap-3">
-                  <div className="relative">
-                    <Input 
-                      type={showKeys['openai'] ? "text" : "password"} 
-                      placeholder="OpenAI API Key (sk-...)" 
-                      className="pr-10 font-mono"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                      onClick={() => toggleShowKey('openai')}
-                    >
-                      {showKeys['openai'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Model</Label>
-                      <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                        <option value="gpt-4o">GPT-4o (Recommended)</option>
-                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <div className="grid gap-4 p-4 border rounded-lg bg-muted/10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Provider</Label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onChange={(e) => setShowKeys(prev => ({ ...prev, provider: e.target.value }))}
+                      >
+                        <option value="openai">OpenAI</option>
+                        <option value="novita">Novita AI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="custom">Custom / Local (Ollama)</option>
                       </select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Temperature</Label>
-                      <Input type="number" step="0.1" min="0" max="2" defaultValue="0.7" className="h-10" />
+                    <div className="space-y-2">
+                      <Label>Model Name</Label>
+                      <Input placeholder="e.g., gpt-4o, nous-hermes-2..." defaultValue="gpt-4o" />
                     </div>
                   </div>
 
-                  <div className="space-y-1 mt-2">
-                    <Label className="text-xs text-muted-foreground">Custom System Prompt</Label>
+                  <div className="space-y-2">
+                    <Label>API Endpoint (Base URL)</Label>
+                    <Input placeholder="https://api.openai.com/v1" defaultValue="https://api.openai.com/v1" className="font-mono text-xs" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <div className="relative">
+                      <Input 
+                        type={showKeys['ai_key'] ? "text" : "password"} 
+                        placeholder="sk-..." 
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                        onClick={() => toggleShowKey('ai_key')}
+                      >
+                        {showKeys['ai_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <Label>System Prompt Template</Label>
                     <textarea 
-                      className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="You are an expert social media manager for an alternative health brand..."
-                      defaultValue="You are an expert social media manager for an alternative health brand. Rewrite the provided news article into an engaging Instagram caption. Include a disclaimer that this is not medical advice. Use 8-12 hashtags."
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      defaultValue="You are an expert social media manager. Summarize the following news for Instagram..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Google Sheets Integration */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-base">Google Workspace Integration</Label>
+                  <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">Required for Audit</Badge>
+                </div>
+                
+                <div className="grid gap-4 p-4 border rounded-lg bg-muted/10">
+                  <div className="space-y-2">
+                    <Label>Google Sheet ID</Label>
+                    <Input placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE..." className="font-mono text-xs" />
+                    <p className="text-[10px] text-muted-foreground">The ID found in your spreadsheet URL.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Service Account Credentials (JSON)</Label>
+                    <textarea 
+                      className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder='{ "type": "service_account", "project_id": "..." }'
                     />
                   </div>
                 </div>

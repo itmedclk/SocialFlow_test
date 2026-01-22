@@ -7,12 +7,14 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Pipeline from "@/pages/pipeline";
+import Review from "@/pages/review";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/pipeline" component={Pipeline} />
+      <Route path="/review" component={Review} />
       <Route path="/logs" component={Pipeline} /> {/* Reusing pipeline view for logs for now */}
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
