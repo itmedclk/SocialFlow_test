@@ -131,7 +131,7 @@ export default function Review() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Model Name / ID</Label>
-                <Input placeholder="e.g. gpt-4o, nous-hermes-2" className="h-9 text-sm" />
+                <Input placeholder="e.g. deepseek/deepseek-v3.2, gpt-4o" className="h-9 text-sm" />
               </div>
               <Button variant="secondary" className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors" onClick={handleRegenerate}>
                 <RefreshCw className="h-4 w-4" />

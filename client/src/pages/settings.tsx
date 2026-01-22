@@ -190,13 +190,13 @@ export default function Settings() {
                     </div>
                     <div className="space-y-2">
                       <Label>Model Name</Label>
-                      <Input placeholder="e.g., gpt-4o, nous-hermes-2..." defaultValue="gpt-4o" />
+                      <Input placeholder="e.g. deepseek/deepseek-v3.2" defaultValue="deepseek/deepseek-v3.2" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label>API Endpoint (Base URL)</Label>
-                    <Input placeholder="https://api.openai.com/v1" defaultValue="https://api.openai.com/v1" className="font-mono text-xs" />
+                    <Input placeholder="https://api.novita.ai/openai" defaultValue="https://api.novita.ai/openai" className="font-mono text-xs" />
                   </div>
 
                   <div className="space-y-2">
