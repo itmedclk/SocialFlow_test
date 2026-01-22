@@ -6,15 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2, Check } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Settings() {
   const [showKeys, setShowKeys] = useState<Record<string, any>>({});
   const [rssUrls, setRssUrls] = useState<string[]>([
     "https://news.google.com/rss/search?q=alternative+health+OR+integrative+medicine&hl=en-US&gl=US&ceid=US:en"
   ]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram"]);
   const { toast } = useToast();
 
   const toggleShowKey = (key: string) => {
@@ -35,6 +37,14 @@ export default function Settings() {
     const newUrls = [...rssUrls];
     newUrls[index] = value;
     setRssUrls(newUrls);
+  };
+
+  const togglePlatform = (platform: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platform) 
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
   };
 
   const handleSave = () => {
@@ -291,28 +301,80 @@ export default function Settings() {
               <Separator />
 
               {/* Postly Section */}
-              <div className="space-y-3">
-                <Label>Postly API Key (Scheduling)</Label>
-                <div className="relative">
-                  <Input 
-                    type={showKeys['postly'] ? "text" : "password"} 
-                    placeholder="postly_..." 
-                    className="pr-10 font-mono"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                    onClick={() => toggleShowKey('postly')}
-                  >
-                    {showKeys['postly'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label>Postly Configuration</Label>
+                  <p className="text-[10px] text-muted-foreground">Manage your connection to the Postly scheduling engine.</p>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                <Label>Postly Workspace ID</Label>
-                <Input placeholder="ws_..." className="font-mono" />
+                <div className="grid gap-4 p-4 border rounded-lg bg-muted/10">
+                   <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <div className="relative">
+                      <Input 
+                        type={showKeys['postly'] ? "text" : "password"} 
+                        placeholder="postly_..." 
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                        onClick={() => toggleShowKey('postly')}
+                      >
+                        {showKeys['postly'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Workspace ID</Label>
+                    <Input placeholder="ws_..." className="font-mono" />
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <Label>Target Platforms</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        { id: "instagram", label: "Instagram" },
+                        { id: "facebook", label: "Facebook" },
+                        { id: "twitter", label: "Twitter (X)" },
+                        { id: "linkedin", label: "LinkedIn" },
+                        { id: "pinterest", label: "Pinterest" },
+                        { id: "tiktok", label: "TikTok" },
+                        { id: "youtube", label: "YouTube" },
+                        { id: "telegram", label: "Telegram" }
+                      ].map((platform) => (
+                        <div 
+                          key={platform.id}
+                          className={`
+                            flex items-center space-x-2 border rounded-md p-3 cursor-pointer transition-colors
+                            ${selectedPlatforms.includes(platform.id) 
+                              ? "bg-primary/10 border-primary" 
+                              : "hover:bg-muted/50 border-input"}
+                          `}
+                          onClick={() => togglePlatform(platform.id)}
+                        >
+                          <Checkbox 
+                            id={platform.id} 
+                            checked={selectedPlatforms.includes(platform.id)}
+                            onCheckedChange={() => togglePlatform(platform.id)}
+                            className="pointer-events-none" 
+                          />
+                          <label
+                            htmlFor={platform.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-none"
+                          >
+                            {platform.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Select which social accounts connected in Postly should receive the automated content.
+                    </p>
+                  </div>
+                </div>
               </div>
 
             </CardContent>
