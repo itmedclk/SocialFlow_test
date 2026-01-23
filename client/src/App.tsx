@@ -11,6 +11,7 @@ import Review from "@/pages/review";
 import AuditLog from "@/pages/audit-log";
 import Campaigns from "@/pages/campaigns";
 import CampaignEditor from "@/pages/campaign-editor";
+import CampaignDetails from "@/pages/campaign-details";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/campaigns/:id" component={CampaignEditor} />
+      <Route path="/campaigns/:id/details" component={CampaignDetails} />
       <Route path="/pipeline" component={Pipeline} />
       <Route path="/review" component={Review} />
       <Route path="/logs" component={AuditLog} />
