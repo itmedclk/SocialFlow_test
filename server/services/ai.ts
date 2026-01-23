@@ -104,11 +104,16 @@ function buildSystemPrompt(campaign: Campaign,
 ): string {
   const defaultPrompt = `You are a social media content creator. Create engaging, concise social media posts based on the article provided. 
 Keep the tone professional yet approachable. Include relevant hashtags. 
-The post should be compelling and encourage engagement.`;
+The post should be compelling and encourage engagement.
+IMPORTANT: Never use "Thread x/x" or numbered thread formats in the output. Create a single cohesive post.`;
 
   const customPrompt = overridePrompt?.trim() || campaign.aiPrompt?.trim();
 
   let prompt = customPrompt || defaultPrompt;
+
+  if (!prompt.toLowerCase().includes("thread")) {
+    prompt += `\n\nIMPORTANT: Do not use "Thread x/x" or any numbered thread format. Provide the caption as a single block of text.`;
+  }
 
   if (campaign.safetyMaxLength) {
     prompt += `\n\nIMPORTANT: Keep the post under ${campaign.safetyMaxLength} characters.`;
