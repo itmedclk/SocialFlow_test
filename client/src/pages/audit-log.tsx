@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -189,11 +190,20 @@ export default function AuditLog() {
                         </TableCell>
                         <TableCell>
                           <div className="font-medium text-sm">{log.message}</div>
-                          {log.campaignId && (
-                            <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                              Campaign ID: {log.campaignId}
-                            </div>
-                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {log.campaignId && (
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                Campaign ID: {log.campaignId}
+                              </div>
+                            )}
+                            {log.postId && (
+                              <Link href={`/review?postId=${log.postId}`}>
+                                <Button variant="link" className="h-auto p-0 text-[10px] text-primary h-fit">
+                                  View Post Details
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {log.metadata && (
