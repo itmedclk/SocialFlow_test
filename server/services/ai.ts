@@ -23,7 +23,7 @@ interface ChatCompletionResponse {
 async function getAIConfig(userId?: string): Promise<AIConfig> {
   let baseUrl = process.env.AI_BASE_URL || "https://api.novita.ai/openai";
   let apiKey = process.env.AI_API_KEY || "";
-  let model = "deepseek/deepseek-v3.2";
+  let model = process.env.AI_MODEL || "deepseek/deepseek-v3.2";
 
   if (userId) {
     const settings = await storage.getUserSettings(userId);
