@@ -4,19 +4,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PipelineVisualizer } from "@/components/pipeline-visualizer";
 import { LogViewer } from "@/components/log-viewer";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, RefreshCw, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Play, Pause, RefreshCw, Loader2, Filter } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const MOCK_CAMPAIGNS = [
+  { id: "1", name: "Alternative Health Daily", topic: "Health & Wellness" },
+  { id: "2", name: "Tech Startup News", topic: "Technology" },
+  { id: "3", name: "Motivational Quotes", topic: "Lifestyle" }
+];
+
 export default function Pipeline() {
   const [isRunning, setIsRunning] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("2"); // Default to Tech Startup News
   const { toast } = useToast();
+
+  const activeCampaign = MOCK_CAMPAIGNS.find(c => c.id === selectedCampaign) || MOCK_CAMPAIGNS[0];
 
   const handleRunPipeline = () => {
     setIsRunning(true);
     toast({
-      title: "Pipeline Started",
-      description: "Executing automation sequence with current configuration...",
+      title: `Starting ${activeCampaign.name}`,
+      description: `Executing automation sequence for ${activeCampaign.topic}...`,
     });
   };
 
@@ -24,7 +34,7 @@ export default function Pipeline() {
     setIsRunning(false);
     toast({
       title: "Pipeline Completed",
-      description: "All steps finished successfully.",
+      description: `All steps finished for ${activeCampaign.name}.`,
       variant: "default",
     });
   };
@@ -39,42 +49,59 @@ export default function Pipeline() {
               Real-time view of the automation workflow.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
-              <Pause className="h-4 w-4" />
-              Pause Schedule
-            </Button>
-            <Button 
-              className="gap-2 shadow-lg shadow-primary/25" 
-              onClick={handleRunPipeline}
-              disabled={isRunning}
-            >
-              {isRunning ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" />
-                  Run Pipeline Now
-                </>
-              )}
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+             <div className="w-[200px]">
+               <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select Campaign" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {MOCK_CAMPAIGNS.map(campaign => (
+                     <SelectItem key={campaign.id} value={campaign.id}>
+                       {campaign.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2">
+                <Pause className="h-4 w-4" />
+                Pause
+              </Button>
+              <Button 
+                className="gap-2 shadow-lg shadow-primary/25" 
+                onClick={handleRunPipeline}
+                disabled={isRunning}
+              >
+                {isRunning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Run Now
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
-              <h3 className="font-semibold text-primary">
-                {isRunning ? "System Processing" : "System Active"}
+              <h3 className="font-semibold text-primary flex items-center gap-2">
+                {isRunning ? "Processing Campaign:" : "Ready to Run:"}
+                <span className="text-foreground">{activeCampaign.name}</span>
               </h3>
               <p className="text-sm text-muted-foreground">
                 {isRunning ? (
-                  <span className="animate-pulse text-primary font-medium">Executing automated tasks...</span>
+                  <span className="animate-pulse text-primary font-medium">Executing automated tasks for {activeCampaign.topic}...</span>
                 ) : (
-                  <>Next automated run scheduled for <span className="font-mono font-medium text-foreground">09:00 PST</span></>
+                  <>Next automated run scheduled for <span className="font-mono font-medium text-foreground">09:00 PST</span> using {activeCampaign.topic} settings.</>
                 )}
               </p>
             </div>
