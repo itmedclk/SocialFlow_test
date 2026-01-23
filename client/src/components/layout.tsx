@@ -35,8 +35,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <ShieldCheck className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="font-bold text-lg tracking-tight">AutoHealth</h1>
-          <p className="text-xs text-muted-foreground font-medium">IG Manager v1.0</p>
+          <h1 className="font-bold text-lg tracking-tight">SocialFlow</h1>
+          <p className="text-xs text-muted-foreground font-medium">Automation v2.0</p>
         </div>
       </div>
       
@@ -93,7 +93,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavContent />
           </SheetContent>
         </Sheet>
-        <span className="ml-4 font-bold text-lg">AutoHealth</span>
+        <span className="ml-4 font-bold text-lg">SocialFlow</span>
       </div>
 
       {/* Main Content */}
