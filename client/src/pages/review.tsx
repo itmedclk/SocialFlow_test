@@ -36,6 +36,14 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Campaign, Post } from "@shared/schema";
@@ -270,7 +278,9 @@ export default function Review() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
 
-  const handleSchedule = async () => {
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+
+  const handleScheduleConfirm = async () => {
     if (!currentPost) return;
 
     try {
@@ -296,11 +306,9 @@ export default function Review() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Schedule error details:", errorData);
         throw new Error(errorData.error || "Failed to schedule");
       }
 
-      // Add audit log for scheduling
       await fetch("/api/logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -318,6 +326,7 @@ export default function Review() {
         description: `Post queued for ${scheduledFor.toLocaleString()}.`,
       });
 
+      setIsScheduleDialogOpen(false);
       await fetchPosts(activeCampaign?.id);
     } catch (error) {
       toast({
@@ -607,30 +616,10 @@ export default function Review() {
               <Save className="h-4 w-4" />
               Save Draft
             </Button>
-            <div className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/30">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium">Scheduling</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="date"
-                  value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                  className="h-8 text-xs px-2"
-                />
-                <Input
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.target.value)}
-                  className="h-8 text-xs px-2"
-                />
-              </div>
-            </div>
             <Button
               variant="outline"
               className="gap-2"
-              onClick={handleSchedule}
+              onClick={() => setIsScheduleDialogOpen(true)}
               disabled={!currentPost}
               data-testid="button-schedule"
             >
@@ -675,7 +664,22 @@ export default function Review() {
                     <ExternalLink className="h-4 w-4" />
                     Source Article
                   </CardTitle>
-                  <Badge variant="secondary">Draft</Badge>
+                  <div className="flex items-center gap-2">
+                    {currentPost?.status === "scheduled" && currentPost?.scheduledFor && (
+                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex items-center gap-1.5 px-2 py-0.5 text-[10px]">
+                        <CalendarClock className="h-3 w-3" />
+                        Scheduled: {new Date(currentPost.scheduledFor).toLocaleString('en-GB', { 
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          year: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: false 
+                        })}
+                      </Badge>
+                    )}
+                    <Badge variant="secondary" className="capitalize">{currentPost?.status || "Draft"}</Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto">
@@ -866,6 +870,51 @@ export default function Review() {
           </div>
         </div>
       )}
+      {/* Schedule Dialog */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Schedule Post</DialogTitle>
+            <DialogDescription>
+              Choose a date and time to publish this post.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="date" className="text-right">
+                Date
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="time" className="text-right">
+                Time
+              </Label>
+              <Input
+                id="time"
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleScheduleConfirm}>
+              Confirm Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
