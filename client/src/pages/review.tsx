@@ -212,13 +212,14 @@ export default function Review() {
 
   const currentPost = posts[selectedPostIndex];
   const activeCampaign =
-    campaigns.find((c) => c.id.toString() === selectedCampaign) || campaigns[0];
+    campaigns.find((c) => c.id.toString() === selectedCampaign) || (selectedCampaign === "all" ? null : campaigns[0]);
 
   const handleFetchNew = async () => {
-    if (!activeCampaign) {
+    const campaignToUse = activeCampaign || campaigns[0];
+    if (!campaignToUse) {
       toast({
-        title: "No Campaign Selected",
-        description: "Please select a campaign first",
+        title: "No Campaign Available",
+        description: "Please create a campaign first",
         variant: "destructive",
       });
       return;
@@ -226,7 +227,7 @@ export default function Review() {
 
     try {
       const response = await fetch(
-        `/api/campaigns/${activeCampaign.id}/fetch`,
+        `/api/campaigns/${campaignToUse.id}/fetch`,
         {
           method: "POST",
         },
@@ -277,8 +278,27 @@ export default function Review() {
 
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
-
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [userModel, setUserModel] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCampaigns();
+    fetchPosts();
+    fetchGlobalSettings();
+    fetchUserSettings();
+  }, []);
+
+  const fetchUserSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setUserModel(data.aiModel);
+      }
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+    }
+  };
 
   const handleScheduleConfirm = async () => {
     if (!currentPost) return;
@@ -794,11 +814,9 @@ export default function Review() {
                     Generation Controls
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {currentPost?.aiModel && (
-                      <Badge variant="secondary" className="text-[10px] h-5 bg-muted/50 text-muted-foreground border-muted">
-                        AI Model: {currentPost.aiModel}
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="text-[10px] h-5 bg-muted/50 text-muted-foreground border-muted">
+                      AI Model: {currentPost?.aiModel || userModel || "Default"}
+                    </Badge>
                     <Badge
                       variant="outline"
                       className="text-[10px] h-5 bg-primary/5 text-primary border-primary/20"
