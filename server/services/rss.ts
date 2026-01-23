@@ -91,6 +91,7 @@ export async function processCampaignFeeds(campaignId: number): Promise<{
     
     try {
       const articles = await fetchFeed(url);
+      // Fetch only 30 items per feed source
       const limitedArticles = articles.slice(0, 30);
       result.fetched += limitedArticles.length;
 
