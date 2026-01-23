@@ -38,8 +38,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Background Processing
 - **RSS Service**: `server/services/rss.ts` handles feed fetching with rss-parser, deduplication via source GUID
-- **AI Service**: Planned integration with Novita AI (OpenAI-compatible) for content generation
-- **Scheduling**: Currently uses simple cron expressions stored per campaign; BullMQ planned for production
+- **AI Service**: `server/services/ai.ts` integrates with OpenAI-compatible APIs (Novita AI, DeepSeek) for caption generation
+- **Image Service**: `server/services/images.ts` searches Unsplash, Pexels, Wikimedia for stock images
+- **Pipeline**: `server/services/pipeline.ts` orchestrates content generation with 3-retry logic and safety validation
+- **Postly Service**: `server/services/postly.ts` publishes to social media platforms
+- **Smart Scheduler**: `server/services/scheduler.ts` runs efficient background jobs:
+  - Single check cycle every 5 minutes
+  - RSS fetch only once per hour per campaign
+  - Prepares only posts scheduled within next 30 minutes
+  - Maximum 2 posts prepared per cycle for scalability
 
 ### Key Design Decisions
 1. **Shared Schema**: TypeScript types are derived from Drizzle schema, ensuring type safety between frontend and backend

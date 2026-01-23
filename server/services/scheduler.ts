@@ -1,75 +1,88 @@
 import { storage } from "../storage";
 import { processCampaignFeeds, processAllActiveCampaigns } from "./rss";
-import { processDraftPosts, publishScheduledPosts } from "./pipeline";
+import { processDraftPosts, publishScheduledPosts, processNextPosts } from "./pipeline";
 
-let rssIntervalId: NodeJS.Timeout | null = null;
-let publishIntervalId: NodeJS.Timeout | null = null;
-let processingIntervalId: NodeJS.Timeout | null = null;
+let mainLoopId: NodeJS.Timeout | null = null;
 
-const RSS_FETCH_INTERVAL = 15 * 60 * 1000;
-const PUBLISH_CHECK_INTERVAL = 60 * 1000;
-const PROCESSING_INTERVAL = 5 * 60 * 1000;
+const MAIN_LOOP_INTERVAL = 5 * 60 * 1000;
+const PREPARATION_WINDOW_MINUTES = 30;
+const MAX_POSTS_TO_PREPARE = 2;
 
 export function startScheduler(): void {
-  console.log("[Scheduler] Starting background jobs...");
+  console.log("[Scheduler] Starting smart scheduler...");
 
-  rssIntervalId = setInterval(async () => {
+  mainLoopId = setInterval(async () => {
     try {
-      console.log("[Scheduler] Running RSS fetch for all active campaigns...");
-      await processAllActiveCampaigns();
+      await runSchedulerCycle();
     } catch (error) {
-      console.error("[Scheduler] RSS fetch error:", error);
+      console.error("[Scheduler] Cycle error:", error);
     }
-  }, RSS_FETCH_INTERVAL);
+  }, MAIN_LOOP_INTERVAL);
 
-  processingIntervalId = setInterval(async () => {
-    try {
-      console.log("[Scheduler] Processing draft posts...");
-      const campaigns = await storage.getActiveCampaigns();
-      
-      for (const campaign of campaigns) {
-        try {
-          await processDraftPosts(campaign.id);
-        } catch (error) {
-          console.error(`[Scheduler] Processing error for campaign ${campaign.id}:`, error);
-        }
+  setTimeout(() => runSchedulerCycle(), 10000);
+
+  console.log("[Scheduler] Smart scheduler started");
+  console.log(`  - Check interval: every ${MAIN_LOOP_INTERVAL / 60000} minutes`);
+  console.log(`  - Preparation window: ${PREPARATION_WINDOW_MINUTES} minutes before scheduled time`);
+  console.log(`  - Max posts to prepare per cycle: ${MAX_POSTS_TO_PREPARE}`);
+}
+
+async function runSchedulerCycle(): Promise<void> {
+  const now = new Date();
+  const campaigns = await storage.getActiveCampaigns();
+
+  for (const campaign of campaigns) {
+    const shouldFetchRSS = await shouldRunRSSFetch(campaign.id);
+    if (shouldFetchRSS) {
+      console.log(`[Scheduler] Fetching RSS for campaign ${campaign.id}...`);
+      try {
+        await processCampaignFeeds(campaign.id);
+      } catch (error) {
+        console.error(`[Scheduler] RSS fetch error for campaign ${campaign.id}:`, error);
       }
-    } catch (error) {
-      console.error("[Scheduler] Processing error:", error);
     }
-  }, PROCESSING_INTERVAL);
+  }
 
-  publishIntervalId = setInterval(async () => {
-    try {
-      const result = await publishScheduledPosts();
-      if (result.published > 0 || result.failed > 0) {
-        console.log(`[Scheduler] Published: ${result.published}, Failed: ${result.failed}`);
-      }
-    } catch (error) {
-      console.error("[Scheduler] Publish check error:", error);
+  try {
+    const prepared = await processNextPosts(MAX_POSTS_TO_PREPARE, PREPARATION_WINDOW_MINUTES);
+    if (prepared > 0) {
+      console.log(`[Scheduler] Prepared ${prepared} posts for upcoming publication`);
     }
-  }, PUBLISH_CHECK_INTERVAL);
+  } catch (error) {
+    console.error("[Scheduler] Preparation error:", error);
+  }
 
-  console.log("[Scheduler] Background jobs started successfully");
-  console.log(`  - RSS fetch: every ${RSS_FETCH_INTERVAL / 60000} minutes`);
-  console.log(`  - Draft processing: every ${PROCESSING_INTERVAL / 60000} minutes`);
-  console.log(`  - Publish check: every ${PUBLISH_CHECK_INTERVAL / 1000} seconds`);
+  try {
+    const result = await publishScheduledPosts();
+    if (result.published > 0 || result.failed > 0) {
+      console.log(`[Scheduler] Published: ${result.published}, Failed: ${result.failed}`);
+    }
+  } catch (error) {
+    console.error("[Scheduler] Publish error:", error);
+  }
+}
+
+async function shouldRunRSSFetch(campaignId: number): Promise<boolean> {
+  const logs = await storage.getLogsByCampaign(campaignId, 10);
+  const lastFetchLog = logs.find(log => 
+    log.message.includes("RSS fetch completed") || 
+    log.message.includes("New article found")
+  );
+
+  if (!lastFetchLog) return true;
+
+  const lastFetchTime = new Date(lastFetchLog.createdAt!);
+  const hoursSinceLastFetch = (Date.now() - lastFetchTime.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceLastFetch >= 1;
 }
 
 export function stopScheduler(): void {
-  if (rssIntervalId) {
-    clearInterval(rssIntervalId);
-    rssIntervalId = null;
+  if (mainLoopId) {
+    clearInterval(mainLoopId);
+    mainLoopId = null;
   }
-  if (publishIntervalId) {
-    clearInterval(publishIntervalId);
-    publishIntervalId = null;
-  }
-  if (processingIntervalId) {
-    clearInterval(processingIntervalId);
-    processingIntervalId = null;
-  }
-  console.log("[Scheduler] Background jobs stopped");
+  console.log("[Scheduler] Stopped");
 }
 
 export async function runNow(action: "fetch" | "process" | "publish", campaignId?: number): Promise<any> {

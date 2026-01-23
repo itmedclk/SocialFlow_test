@@ -233,3 +233,45 @@ export async function publishScheduledPosts(): Promise<{
 
   return result;
 }
+
+export async function processNextPosts(
+  maxPosts: number = 2,
+  windowMinutes: number = 30
+): Promise<number> {
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + windowMinutes * 60 * 1000);
+  const allCampaigns = await storage.getActiveCampaigns();
+  
+  let prepared = 0;
+
+  for (const campaign of allCampaigns) {
+    if (prepared >= maxPosts) break;
+
+    const posts = await storage.getPostsByCampaign(campaign.id);
+    
+    const postsNeedingPrep = posts.filter((p) => {
+      if (p.status !== "approved" && p.status !== "scheduled") return false;
+      if (p.generatedCaption) return false;
+      
+      if (p.status === "scheduled" && p.scheduledFor) {
+        const scheduledTime = new Date(p.scheduledFor);
+        return scheduledTime <= windowEnd;
+      }
+      
+      return true;
+    });
+
+    const toProcess = postsNeedingPrep.slice(0, maxPosts - prepared);
+
+    for (const post of toProcess) {
+      try {
+        await processNewPost(post, campaign);
+        prepared++;
+      } catch (error) {
+        console.error(`Failed to prepare post ${post.id}:`, error);
+      }
+    }
+  }
+
+  return prepared;
+}
