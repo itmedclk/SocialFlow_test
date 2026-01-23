@@ -153,14 +153,16 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(posts)
         .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus)))
-        .orderBy(desc(posts.pubDate), desc(posts.createdAt));
+        .orderBy(desc(posts.pubDate), desc(posts.createdAt))
+        .limit(30);
     }
     
     return await db
       .select()
       .from(posts)
       .where(eq(posts.status, draftStatus))
-      .orderBy(desc(posts.pubDate), desc(posts.createdAt));
+      .orderBy(desc(posts.pubDate), desc(posts.createdAt))
+      .limit(30);
   }
 
   // ============================================

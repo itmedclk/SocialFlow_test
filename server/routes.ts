@@ -645,13 +645,19 @@ export async function registerRoutes(
 
       const { searchImage, extractOgImage, getImageKeywordsFromCampaign } = await import("./services/images");
 
+      // Handle cyclic search
+      const currentOffset = parseInt(req.query.offset as string) || 0;
+
       let imageUrl = null;
       let imageCredit = null;
 
-      const ogImage = await extractOgImage(post.sourceUrl);
-      if (ogImage) {
-        imageUrl = ogImage;
-        imageCredit = "Source article";
+      // Only extract OG image on the first search (offset 0)
+      if (currentOffset === 0) {
+        const ogImage = await extractOgImage(post.sourceUrl);
+        if (ogImage) {
+          imageUrl = ogImage;
+          imageCredit = "Source article";
+        }
       }
 
       if (!imageUrl) {
@@ -660,7 +666,8 @@ export async function registerRoutes(
           : [{ type: "wikimedia", value: "" }];
         
         const keywords = getImageKeywordsFromCampaign(campaign, post.sourceTitle);
-        const imageResult = await searchImage(keywords, providers, campaign.id);
+        // Pass offset to searchImage
+        const imageResult = await searchImage(keywords, providers, campaign.id, currentOffset);
         
         if (imageResult) {
           imageUrl = imageResult.url;
@@ -669,12 +676,12 @@ export async function registerRoutes(
       }
 
       if (imageUrl) {
-        console.log(`[ImageSearch] Found image for post ${id}: ${imageUrl}`);
+        console.log(`[ImageSearch] Found image for post ${id} (offset ${currentOffset}): ${imageUrl}`);
         await storage.updatePost(id, { imageUrl, imageCredit });
         const updatedPost = await storage.getPost(id);
         res.json({ success: true, post: updatedPost });
       } else {
-        console.log(`[ImageSearch] No image found for post ${id}`);
+        console.log(`[ImageSearch] No image found for post ${id} (offset ${currentOffset})`);
         res.json({ success: false, message: "No image found" });
       }
     } catch (error) {

@@ -313,12 +313,17 @@ export default function Review() {
   const [generating, setGenerating] = useState(false);
   const [searchingImage, setSearchingImage] = useState(false);
 
+  const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
+
   const handleSearchImage = async () => {
     if (!currentPost) return;
 
+    const currentOffset = imageOffsets[currentPost.id] || 0;
+    const nextOffset = currentOffset + 1;
+
     setSearchingImage(true);
     try {
-      const response = await fetch(`/api/posts/${currentPost.id}/search-image`, {
+      const response = await fetch(`/api/posts/${currentPost.id}/search-image?offset=${currentOffset}`, {
         method: "POST",
       });
 
@@ -331,10 +336,16 @@ export default function Review() {
       if (result.success) {
         toast({
           title: "Image Found",
-          description: "A relevant image has been added to the post.",
+          description: `Result #${currentOffset + 1} added to the post.`,
         });
 
-        // Update the posts list which will automatically update currentPost via selectedPostIndex
+        // Update offset for next click
+        setImageOffsets(prev => ({
+          ...prev,
+          [currentPost.id]: nextOffset
+        }));
+
+        // Update the posts list
         setPosts((prev) => {
           const newPosts = [...prev];
           const index = newPosts.findIndex(p => p.id === result.post.id);
@@ -348,10 +359,15 @@ export default function Review() {
           return newPosts;
         });
       } else {
+        // If no more results, reset offset and notify
+        setImageOffsets(prev => ({
+          ...prev,
+          [currentPost.id]: 0
+        }));
         toast({
-          title: "No Image Found",
-          description: "Could not find a suitable image. Try adding more image keywords in campaign settings.",
-          variant: "destructive",
+          title: "No More Images",
+          description: "Reached the end of search results. Restarting from the first result.",
+          variant: "default",
         });
       }
     } catch (error) {

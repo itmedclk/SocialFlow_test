@@ -29,7 +29,8 @@ interface WikimediaResult {
 export async function searchImage(
   keywords: string[],
   providers: Array<{ type: string; value: string }>,
-  campaignId?: number
+  campaignId?: number,
+  offset: number = 0
 ): Promise<ImageResult | null> {
   const query = keywords.join(" ");
 
@@ -54,13 +55,13 @@ export async function searchImage(
 
       switch (provider.type.toLowerCase()) {
         case "unsplash":
-          result = await searchUnsplash(query);
+          result = await searchUnsplash(query, offset);
           break;
         case "pexels":
-          result = await searchPexels(query);
+          result = await searchPexels(query, offset);
           break;
         case "wikimedia":
-          result = await searchWikimedia(query);
+          result = await searchWikimedia(query, offset);
           break;
         default:
           console.warn(`Unknown image provider: ${provider.type}`);
@@ -71,7 +72,7 @@ export async function searchImage(
           await storage.createLog({
             campaignId,
             level: "info",
-            message: `Image found from ${provider.type}`,
+            message: `Image found from ${provider.type} (offset: ${offset})`,
             metadata: { query, url: result.url },
           });
         }
@@ -95,14 +96,16 @@ export async function searchImage(
   return null;
 }
 
-async function searchUnsplash(query: string): Promise<ImageResult | null> {
+async function searchUnsplash(query: string, offset: number = 0): Promise<ImageResult | null> {
   const apiKey = process.env.UNSPLASH_ACCESS_KEY;
   
   if (!apiKey) {
     throw new Error("UNSPLASH_ACCESS_KEY not configured");
   }
 
-  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
+  const perPage = 1;
+  const page = offset + 1;
+  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&orientation=landscape`;
   
   const response = await fetch(url, {
     headers: {
@@ -128,14 +131,16 @@ async function searchUnsplash(query: string): Promise<ImageResult | null> {
   };
 }
 
-async function searchPexels(query: string): Promise<ImageResult | null> {
+async function searchPexels(query: string, offset: number = 0): Promise<ImageResult | null> {
   const apiKey = process.env.PEXELS_API_KEY;
   
   if (!apiKey) {
     throw new Error("PEXELS_API_KEY not configured");
   }
 
-  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
+  const perPage = 1;
+  const page = offset + 1;
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&orientation=landscape`;
   
   const response = await fetch(url, {
     headers: {
@@ -161,8 +166,8 @@ async function searchPexels(query: string): Promise<ImageResult | null> {
   };
 }
 
-async function searchWikimedia(query: string): Promise<ImageResult | null> {
-  const url = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=1&format=json&origin=*`;
+async function searchWikimedia(query: string, offset: number = 0): Promise<ImageResult | null> {
+  const url = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=1&sroffset=${offset}&format=json&origin=*`;
   
   const response = await fetch(url);
 
