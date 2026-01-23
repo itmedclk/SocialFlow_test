@@ -24,7 +24,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Monitoring automated workflow for "Alternative Health News"
+            Monitoring your active automation campaigns and system performance
           </p>
         </div>
         <div className="flex gap-2">
