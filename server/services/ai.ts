@@ -21,16 +21,17 @@ interface ChatCompletionResponse {
 }
 
 function getAIConfig(): AIConfig {
-  const baseUrl = process.env.AI_BASE_URL || "https://api.novita.ai/v3/openai";
+  const baseUrl = process.env.AI_BASE_URL || "https://api.novita.ai/openai";
   const apiKey = process.env.AI_API_KEY || "";
-  const model = process.env.AI_MODEL || "deepseek/deepseek-v3";
+  //const model = process.env.AI_MODEL || "deepseek/deepseek-v3.2";
+  const model = "deepseek/deepseek-v3.2";
 
   return { baseUrl, apiKey, model };
 }
 
 export async function generateCaption(
   post: Post,
-  campaign: Campaign
+  campaign: Campaign,
 ): Promise<string> {
   const config = getAIConfig();
 
@@ -84,7 +85,7 @@ export async function generateCaption(
     return caption;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     await storage.createLog({
       campaignId: campaign.id,
       postId: post.id,
@@ -103,7 +104,7 @@ Keep the tone professional yet approachable. Include relevant hashtags.
 The post should be compelling and encourage engagement.`;
 
   const customPrompt = campaign.aiPrompt?.trim();
-  
+
   let prompt = customPrompt || defaultPrompt;
 
   if (campaign.safetyMaxLength) {
@@ -120,7 +121,7 @@ The post should be compelling and encourage engagement.`;
 function buildUserPrompt(post: Post): string {
   let prompt = `Create a social media post based on this article:\n\n`;
   prompt += `Title: ${post.sourceTitle}\n`;
-  
+
   if (post.sourceSnippet) {
     prompt += `\nContent Summary:\n${post.sourceSnippet}\n`;
   }
@@ -142,12 +143,14 @@ export interface SafetyResult {
 
 export function validateContent(
   caption: string,
-  config: SafetyConfig
+  config: SafetyConfig,
 ): SafetyResult {
   const issues: string[] = [];
 
   if (caption.length > config.maxLength) {
-    issues.push(`Caption exceeds maximum length (${caption.length}/${config.maxLength} characters)`);
+    issues.push(
+      `Caption exceeds maximum length (${caption.length}/${config.maxLength} characters)`,
+    );
   }
 
   for (const term of config.forbiddenTerms) {
@@ -164,7 +167,10 @@ export function validateContent(
 
 export function getSafetyConfigFromCampaign(campaign: Campaign): SafetyConfig {
   const forbiddenTerms = campaign.safetyForbiddenTerms
-    ? campaign.safetyForbiddenTerms.split(",").map((t) => t.trim()).filter(Boolean)
+    ? campaign.safetyForbiddenTerms
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
     : [];
 
   return {

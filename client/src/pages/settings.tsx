@@ -2,10 +2,25 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Save, Key, AlertCircle, LogIn, LogOut, User } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Save,
+  Key,
+  AlertCircle,
+  LogIn,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,36 +41,38 @@ export default function Settings() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     aiApiKey: "",
-    aiBaseUrl: "https://api.novita.ai/v3/openai",
-    aiModel: "deepseek/deepseek-v3-0324",
+    aiBaseUrl: "https://api.novita.ai/openai",
+    aiModel: "deepseek/deepseek-v3.2",
     postlyApiKey: "",
     unsplashAccessKey: "",
     pexelsApiKey: "",
   });
 
-  const { data: settings, isLoading: settingsLoading } = useQuery<UserSettings>({
-    queryKey: ["/api/settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/settings", { credentials: "include" });
-      if (!res.ok) {
-        if (res.status === 401) throw new Error("401: Unauthorized");
-        throw new Error("Failed to fetch settings");
-      }
-      return res.json();
+  const { data: settings, isLoading: settingsLoading } = useQuery<UserSettings>(
+    {
+      queryKey: ["/api/settings"],
+      queryFn: async () => {
+        const res = await fetch("/api/settings", { credentials: "include" });
+        if (!res.ok) {
+          if (res.status === 401) throw new Error("401: Unauthorized");
+          throw new Error("Failed to fetch settings");
+        }
+        return res.json();
+      },
+      enabled: isAuthenticated,
     },
-    enabled: isAuthenticated,
-  });
+  );
 
   useEffect(() => {
     if (settings) {
       setFormData({
         aiApiKey: settings.aiApiKey || "",
-        aiBaseUrl: settings.aiBaseUrl || "https://api.novita.ai/v3/openai",
-        aiModel: settings.aiModel || "deepseek/deepseek-v3-0324",
+        aiBaseUrl: settings.aiBaseUrl || "https://api.novita.ai/openai",
+        aiModel: settings.aiModel || "deepseek/deepseek-v3.2",
         postlyApiKey: settings.postlyApiKey || "",
         unsplashAccessKey: settings.unsplashAccessKey || "",
         pexelsApiKey: settings.pexelsApiKey || "",
@@ -91,7 +108,9 @@ export default function Settings() {
           description: "Please log in again.",
           variant: "destructive",
         });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
         return;
       }
       toast({
@@ -103,8 +122,9 @@ export default function Settings() {
   });
 
   const toggleShowKey = (key: string) => {
-    setShowKeys(prev => ({ ...prev, [key]: !prev[key] }));
+    setShowKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
 
   const handleSave = () => {
     saveMutation.mutate(formData);
@@ -134,7 +154,8 @@ export default function Settings() {
               </div>
               <CardTitle>Sign In Required</CardTitle>
               <CardDescription>
-                Please sign in to manage your API keys and settings. Your keys are securely stored and only accessible to you.
+                Please sign in to manage your API keys and settings. Your keys
+                are securely stored and only accessible to you.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
@@ -158,19 +179,29 @@ export default function Settings() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">API Settings</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your personal API keys for AI, publishing, and image services.
+              Manage your personal API keys for AI, publishing, and image
+              services.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {user?.profileImageUrl ? (
-                <img src={user.profileImageUrl} alt="" className="h-8 w-8 rounded-full" />
+                <img
+                  src={user.profileImageUrl}
+                  alt=""
+                  className="h-8 w-8 rounded-full"
+                />
               ) : (
                 <User className="h-5 w-5" />
               )}
               <span>{user?.firstName || user?.email || "User"}</span>
             </div>
-            <Button variant="outline" size="sm" onClick={() => logout()} data-testid="button-logout">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => logout()}
+              data-testid="button-logout"
+            >
               <LogOut className="h-4 w-4 mr-1" />
               Sign Out
             </Button>
@@ -184,7 +215,8 @@ export default function Settings() {
               <div className="text-sm text-amber-800 dark:text-amber-200">
                 <p className="font-medium">Your API keys are private</p>
                 <p className="text-amber-700 dark:text-amber-300">
-                  Each user provides their own API keys. Your keys are encrypted and only used for your campaigns.
+                  Each user provides their own API keys. Your keys are encrypted
+                  and only used for your campaigns.
                 </p>
               </div>
             </div>
@@ -215,7 +247,12 @@ export default function Settings() {
                       id="aiBaseUrl"
                       placeholder="https://api.novita.ai/v3/openai"
                       value={formData.aiBaseUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, aiBaseUrl: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          aiBaseUrl: e.target.value,
+                        }))
+                      }
                       className="font-mono text-sm"
                       data-testid="input-ai-base-url"
                     />
@@ -226,7 +263,12 @@ export default function Settings() {
                       id="aiModel"
                       placeholder="deepseek/deepseek-v3-0324"
                       value={formData.aiModel}
-                      onChange={(e) => setFormData(prev => ({ ...prev, aiModel: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          aiModel: e.target.value,
+                        }))
+                      }
                       className="font-mono text-sm"
                       data-testid="input-ai-model"
                     />
@@ -237,10 +279,15 @@ export default function Settings() {
                   <div className="relative">
                     <Input
                       id="aiApiKey"
-                      type={showKeys['ai'] ? "text" : "password"}
+                      type={showKeys["ai"] ? "text" : "password"}
                       placeholder="sk-..."
                       value={formData.aiApiKey}
-                      onChange={(e) => setFormData(prev => ({ ...prev, aiApiKey: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          aiApiKey: e.target.value,
+                        }))
+                      }
                       className="pr-10 font-mono"
                       data-testid="input-ai-api-key"
                     />
@@ -248,14 +295,19 @@ export default function Settings() {
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => toggleShowKey('ai')}
+                      onClick={() => toggleShowKey("ai")}
                       data-testid="button-toggle-ai-key"
                     >
-                      {showKeys['ai'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showKeys["ai"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Works with any OpenAI-compatible API (Novita AI, OpenAI, Together AI, etc.)
+                    Works with any OpenAI-compatible API (Novita AI, OpenAI,
+                    Together AI, etc.)
                   </p>
                 </div>
               </CardContent>
@@ -276,10 +328,15 @@ export default function Settings() {
                 <div className="relative">
                   <Input
                     id="postlyApiKey"
-                    type={showKeys['postly'] ? "text" : "password"}
+                    type={showKeys["postly"] ? "text" : "password"}
                     placeholder="postly_..."
                     value={formData.postlyApiKey}
-                    onChange={(e) => setFormData(prev => ({ ...prev, postlyApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        postlyApiKey: e.target.value,
+                      }))
+                    }
                     className="pr-10 font-mono"
                     data-testid="input-postly-api-key"
                   />
@@ -287,10 +344,14 @@ export default function Settings() {
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleShowKey('postly')}
+                    onClick={() => toggleShowKey("postly")}
                     data-testid="button-toggle-postly-key"
                   >
-                    {showKeys['postly'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showKeys["postly"] ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -301,10 +362,13 @@ export default function Settings() {
                 <div className="flex items-center gap-2">
                   <Key className="h-5 w-5 text-primary" />
                   <CardTitle>Image Services</CardTitle>
-                  <Badge variant="secondary" className="text-xs">Optional</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    Optional
+                  </Badge>
                 </div>
                 <CardDescription>
-                  API keys for Unsplash and Pexels image search. Wikimedia Commons works without a key.
+                  API keys for Unsplash and Pexels image search. Wikimedia
+                  Commons works without a key.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -313,10 +377,15 @@ export default function Settings() {
                   <div className="relative">
                     <Input
                       id="unsplashAccessKey"
-                      type={showKeys['unsplash'] ? "text" : "password"}
+                      type={showKeys["unsplash"] ? "text" : "password"}
                       placeholder="Access Key"
                       value={formData.unsplashAccessKey}
-                      onChange={(e) => setFormData(prev => ({ ...prev, unsplashAccessKey: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          unsplashAccessKey: e.target.value,
+                        }))
+                      }
                       className="pr-10 font-mono"
                       data-testid="input-unsplash-key"
                     />
@@ -324,9 +393,13 @@ export default function Settings() {
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => toggleShowKey('unsplash')}
+                      onClick={() => toggleShowKey("unsplash")}
                     >
-                      {showKeys['unsplash'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showKeys["unsplash"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -335,10 +408,15 @@ export default function Settings() {
                   <div className="relative">
                     <Input
                       id="pexelsApiKey"
-                      type={showKeys['pexels'] ? "text" : "password"}
+                      type={showKeys["pexels"] ? "text" : "password"}
                       placeholder="API Key"
                       value={formData.pexelsApiKey}
-                      onChange={(e) => setFormData(prev => ({ ...prev, pexelsApiKey: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          pexelsApiKey: e.target.value,
+                        }))
+                      }
                       className="pr-10 font-mono"
                       data-testid="input-pexels-key"
                     />
@@ -346,9 +424,13 @@ export default function Settings() {
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => toggleShowKey('pexels')}
+                      onClick={() => toggleShowKey("pexels")}
                     >
-                      {showKeys['pexels'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showKeys["pexels"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -358,9 +440,9 @@ export default function Settings() {
             <Separator />
 
             <div className="flex justify-end">
-              <Button 
-                size="lg" 
-                className="gap-2 shadow-lg shadow-primary/25" 
+              <Button
+                size="lg"
+                className="gap-2 shadow-lg shadow-primary/25"
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
                 data-testid="button-save-settings"
