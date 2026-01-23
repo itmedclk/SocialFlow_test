@@ -60,12 +60,19 @@ export async function publishToPostly(
   };
 
   if (post.imageUrl) {
-    const isPexels = post.imageUrl.includes("pexels.com");
-    const isWikimedia = post.imageUrl.includes("wikimedia.org");
+    let mimeType = "image/jpeg"; // Default
+    const lowerUrl = post.imageUrl.toLowerCase();
+    
+    if (lowerUrl.endsWith(".png")) mimeType = "image/png";
+    else if (lowerUrl.endsWith(".gif")) mimeType = "image/gif";
+    else if (lowerUrl.endsWith(".webp")) mimeType = "image/webp";
+    else if (lowerUrl.includes("pexels.com")) mimeType = "image/jpeg";
+    else if (lowerUrl.includes("wikimedia.org")) mimeType = "image/jpeg";
+
     payload.media = [
       {
         url: post.imageUrl,
-        type: (isPexels || isWikimedia) ? "image" : "string"
+        type: mimeType
       }
     ];
   }
