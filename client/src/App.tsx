@@ -9,11 +9,15 @@ import Settings from "@/pages/settings";
 import Pipeline from "@/pages/pipeline";
 import Review from "@/pages/review";
 import AuditLog from "@/pages/audit-log";
+import Campaigns from "@/pages/campaigns";
+import CampaignEditor from "@/pages/campaign-editor";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/campaigns" component={Campaigns} />
+      <Route path="/campaigns/:id" component={CampaignEditor} />
       <Route path="/pipeline" component={Pipeline} />
       <Route path="/review" component={Review} />
       <Route path="/logs" component={AuditLog} />
