@@ -32,6 +32,7 @@ interface UserSettings {
   aiApiKey: string | null;
   aiBaseUrl: string | null;
   aiModel: string | null;
+  globalAiPrompt: string | null;
   postlyApiKey: string | null;
   unsplashAccessKey: string | null;
   pexelsApiKey: string | null;
@@ -45,8 +46,9 @@ export default function Settings() {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     aiApiKey: "",
-    aiBaseUrl: "https://api.novita.ai/openai",
-    aiModel: "deepseek/deepseek-v3.2",
+    aiBaseUrl: "https://api.novita.ai/v3/openai",
+    aiModel: "deepseek/deepseek-v3-0324",
+    globalAiPrompt: "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.",
     postlyApiKey: "",
     unsplashAccessKey: "",
     pexelsApiKey: "",
@@ -71,8 +73,9 @@ export default function Settings() {
     if (settings) {
       setFormData({
         aiApiKey: settings.aiApiKey || "",
-        aiBaseUrl: settings.aiBaseUrl || "https://api.novita.ai/openai",
-        aiModel: settings.aiModel || "deepseek/deepseek-v3.2",
+        aiBaseUrl: settings.aiBaseUrl || "https://api.novita.ai/v3/openai",
+        aiModel: settings.aiModel || "deepseek/deepseek-v3-0324",
+        globalAiPrompt: settings.globalAiPrompt || "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.",
         postlyApiKey: settings.postlyApiKey || "",
         unsplashAccessKey: settings.unsplashAccessKey || "",
         pexelsApiKey: settings.pexelsApiKey || "",
@@ -308,6 +311,25 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Works with any OpenAI-compatible API (Novita AI, OpenAI,
                     Together AI, etc.)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="globalAiPrompt">Default AI Prompt (Global)</Label>
+                  <textarea
+                    id="globalAiPrompt"
+                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="You are an expert social media manager..."
+                    value={formData.globalAiPrompt}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        globalAiPrompt: e.target.value,
+                      }))
+                    }
+                    data-testid="input-global-ai-prompt"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This is used as a fallback when a campaign doesn't have its own prompt.
                   </p>
                 </div>
               </CardContent>

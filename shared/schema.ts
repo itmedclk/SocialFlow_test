@@ -95,6 +95,7 @@ export const userSettings = pgTable("user_settings", {
   aiApiKey: text("ai_api_key"),
   aiBaseUrl: text("ai_base_url"),
   aiModel: text("ai_model"),
+  globalAiPrompt: text("global_ai_prompt"),
   postlyApiKey: text("postly_api_key"),
   unsplashAccessKey: text("unsplash_access_key"),
   pexelsApiKey: text("pexels_api_key"),

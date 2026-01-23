@@ -40,6 +40,10 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Campaign, Post } from "@shared/schema";
 
+interface GlobalSettings {
+  globalAiPrompt: string | null;
+}
+
 export default function Review() {
   const { toast } = useToast();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -49,10 +53,14 @@ export default function Review() {
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [caption, setCaption] = useState("");
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
+  const [promptModified, setPromptModified] = useState(false);
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   useEffect(() => {
     fetchCampaigns();
     fetchPosts();
+    fetchGlobalSettings();
   }, []);
 
   useEffect(() => {
@@ -65,10 +73,43 @@ export default function Review() {
 
   useEffect(() => {
     if (posts.length > 0 && posts[selectedPostIndex]) {
-      console.log("EFFECT SETTING CAPTION FROM POSTS");
       setCaption(posts[selectedPostIndex].generatedCaption || "");
     }
   }, [selectedPostIndex, posts]);
+
+  useEffect(() => {
+    const defaultPrompt = "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.";
+    
+    if (selectedCampaign === "all") {
+      if (globalSettings?.globalAiPrompt) {
+        setPrompt(globalSettings.globalAiPrompt);
+      } else {
+        setPrompt(defaultPrompt);
+      }
+    } else {
+      const campaign = campaigns.find((c) => c.id.toString() === selectedCampaign);
+      if (campaign?.aiPrompt) {
+        setPrompt(campaign.aiPrompt);
+      } else if (globalSettings?.globalAiPrompt) {
+        setPrompt(globalSettings.globalAiPrompt);
+      } else {
+        setPrompt(defaultPrompt);
+      }
+    }
+    setPromptModified(false);
+  }, [selectedCampaign, campaigns, globalSettings]);
+
+  const fetchGlobalSettings = async () => {
+    try {
+      const response = await fetch("/api/settings", { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalSettings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching global settings:", error);
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -76,12 +117,50 @@ export default function Review() {
       if (!response.ok) throw new Error("Failed to fetch campaigns");
       const data = await response.json();
       setCampaigns(data);
-
-      if (data.length > 0 && data[0].aiPrompt) {
-        setPrompt(data[0].aiPrompt);
-      }
     } catch (error) {
       console.error("Error fetching campaigns:", error);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!activeCampaign) {
+      toast({
+        title: "No Campaign Selected",
+        description: "Please select a specific campaign to save the prompt.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingPrompt(true);
+    try {
+      const response = await fetch(`/api/campaigns/${activeCampaign.id}/prompt`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiPrompt: prompt }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save prompt");
+
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === activeCampaign.id ? { ...c, aiPrompt: prompt } : c
+        )
+      );
+      setPromptModified(false);
+
+      toast({
+        title: "Prompt Saved",
+        description: "Campaign prompt has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save prompt to campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPrompt(false);
     }
   };
 
@@ -230,6 +309,53 @@ export default function Review() {
   };
 
   const [generating, setGenerating] = useState(false);
+  const [searchingImage, setSearchingImage] = useState(false);
+
+  const handleSearchImage = async () => {
+    if (!currentPost) return;
+
+    setSearchingImage(true);
+    try {
+      const response = await fetch(`/api/posts/${currentPost.id}/search-image`, {
+        method: "POST",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to search for image");
+      }
+
+      if (result.success) {
+        toast({
+          title: "Image Found",
+          description: "A relevant image has been added to the post.",
+        });
+
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === currentPost.id
+              ? { ...p, imageUrl: result.post.imageUrl, imageCredit: result.post.imageCredit }
+              : p
+          )
+        );
+      } else {
+        toast({
+          title: "No Image Found",
+          description: "Could not find a suitable image. Try adding more image keywords in campaign settings.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Image Search Failed",
+        description: error instanceof Error ? error.message : "Failed to search for image",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingImage(false);
+    }
+  };
 
   const handleRegenerate = async () => {
     if (!currentPost || !activeCampaign) return;
@@ -511,20 +637,37 @@ export default function Review() {
               </CardHeader>
               <CardContent className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label className="text-xs flex items-center gap-1.5">
-                    <Wand2 className="h-3 w-3 text-primary" />
-                    System Prompt
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs flex items-center gap-1.5">
+                      <Wand2 className="h-3 w-3 text-primary" />
+                      System Prompt
+                    </Label>
+                    {promptModified && selectedCampaign !== "all" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs gap-1"
+                        onClick={handleSavePrompt}
+                        disabled={savingPrompt}
+                        data-testid="button-save-prompt"
+                      >
+                        <Save className="h-3 w-3" />
+                        {savingPrompt ? "Saving..." : "Save to Campaign"}
+                      </Button>
+                    )}
+                  </div>
                   <Textarea
-                    value={
-                      prompt ||
-                      activeCampaign?.aiPrompt ||
-                      "You are a social media content writer. Create an engaging post based on this article."
-                    }
-                    onChange={(e) => setPrompt(e.target.value)}
+                    value={prompt}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      setPromptModified(true);
+                    }}
                     className="min-h-[80px] text-xs leading-relaxed resize-y font-mono bg-muted/20"
                     data-testid="textarea-prompt"
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    Prompt hierarchy: Review → Campaign → Global Settings
+                  </p>
                 </div>
 
                 <Button
@@ -583,28 +726,41 @@ export default function Review() {
 
               <TabsContent value="image" className="flex-1 mt-0">
                 <Card className="h-full overflow-hidden flex flex-col">
-                  <div className="flex-1 bg-muted/30 relative group flex items-center justify-center">
+                  <div className="flex-1 bg-muted/30 relative group flex items-center justify-center min-h-[200px]">
                     {currentPost?.imageUrl ? (
                       <img
                         src={currentPost.imageUrl}
                         alt="Preview"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     ) : (
-                      <div className="text-center text-muted-foreground">
+                      <div className="text-center text-muted-foreground p-4">
                         <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p>No image available</p>
-                        <p className="text-xs">
-                          Image sourcing will be added in Phase 2
+                        <p className="text-xs mt-1">
+                          Click "Search Image" to find one
                         </p>
                       </div>
                     )}
                   </div>
                   <CardFooter className="border-t p-4 bg-muted/10">
-                    <div className="w-full space-y-2">
+                    <div className="w-full space-y-3">
+                      <Button
+                        variant="secondary"
+                        className="w-full gap-2"
+                        onClick={handleSearchImage}
+                        disabled={!currentPost || searchingImage}
+                        data-testid="button-search-image"
+                      >
+                        <Search className={`h-4 w-4 ${searchingImage ? "animate-pulse" : ""}`} />
+                        {searchingImage ? "Searching..." : "Search Image"}
+                      </Button>
                       <div className="flex justify-between text-xs">
                         <span className="font-medium">Image Credit</span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground truncate ml-2">
                           {currentPost?.imageCredit || "Not specified"}
                         </span>
                       </div>

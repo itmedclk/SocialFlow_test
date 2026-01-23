@@ -533,6 +533,7 @@ export async function registerRoutes(
           aiApiKey: null,
           aiBaseUrl: null,
           aiModel: null,
+          globalAiPrompt: null,
           postlyApiKey: null,
           unsplashAccessKey: null,
           pexelsApiKey: null,
@@ -577,6 +578,12 @@ export async function registerRoutes(
         updateData.aiModel = existingSettings.aiModel;
       }
       
+      if (req.body.globalAiPrompt !== undefined) {
+        updateData.globalAiPrompt = req.body.globalAiPrompt || null;
+      } else if (existingSettings) {
+        updateData.globalAiPrompt = existingSettings.globalAiPrompt;
+      }
+      
       if (req.body.postlyApiKey !== undefined && req.body.postlyApiKey !== "••••••••") {
         updateData.postlyApiKey = req.body.postlyApiKey || null;
       } else if (existingSettings) {
@@ -607,6 +614,84 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating settings:", error);
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // Endpoint to search for images
+  app.post("/api/posts/:id/search-image", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+
+      const post = await storage.getPost(id);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      const campaign = await storage.getCampaign(post.campaignId);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
+      const { searchImage, extractOgImage, getImageKeywordsFromCampaign } = await import("./services/images");
+
+      let imageUrl = null;
+      let imageCredit = null;
+
+      const ogImage = await extractOgImage(post.sourceUrl);
+      if (ogImage) {
+        imageUrl = ogImage;
+        imageCredit = "Source article";
+      }
+
+      if (!imageUrl) {
+        const providers = campaign.imageProviders?.length 
+          ? campaign.imageProviders 
+          : [{ type: "wikimedia", value: "" }];
+        
+        const keywords = getImageKeywordsFromCampaign(campaign, post.sourceTitle);
+        const imageResult = await searchImage(keywords, providers, campaign.id);
+        
+        if (imageResult) {
+          imageUrl = imageResult.url;
+          imageCredit = imageResult.credit;
+        }
+      }
+
+      if (imageUrl) {
+        await storage.updatePost(id, { imageUrl, imageCredit });
+        const updatedPost = await storage.getPost(id);
+        res.json({ success: true, post: updatedPost });
+      } else {
+        res.json({ success: false, message: "No image found" });
+      }
+    } catch (error) {
+      console.error("Error searching for image:", error);
+      res.status(500).json({ error: "Failed to search for image" });
+    }
+  });
+
+  // Endpoint to sync review prompt to campaign
+  app.put("/api/campaigns/:id/prompt", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid campaign ID" });
+      }
+      
+      const { aiPrompt } = req.body;
+      const campaign = await storage.updateCampaign(id, { aiPrompt });
+      
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      
+      res.json({ success: true, campaign });
+    } catch (error) {
+      console.error("Error updating campaign prompt:", error);
+      res.status(500).json({ error: "Failed to update campaign prompt" });
     }
   });
 

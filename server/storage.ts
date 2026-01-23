@@ -49,6 +49,7 @@ export class DatabaseStorage implements IStorage {
           aiApiKey: settings.aiApiKey,
           aiBaseUrl: settings.aiBaseUrl,
           aiModel: settings.aiModel,
+          globalAiPrompt: settings.globalAiPrompt,
           postlyApiKey: settings.postlyApiKey,
           unsplashAccessKey: settings.unsplashAccessKey,
           pexelsApiKey: settings.pexelsApiKey,
