@@ -45,6 +45,7 @@ export const posts = pgTable("posts", {
   sourceUrl: text("source_url").notNull(),
   sourceGuid: text("source_guid").notNull(),
   sourceSnippet: text("source_snippet"),
+  pubDate: timestamp("pub_date"),
   generatedCaption: text("generated_caption"),
   imageUrl: text("image_url"),
   imageCredit: text("image_credit"),

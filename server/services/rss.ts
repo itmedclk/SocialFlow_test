@@ -91,9 +91,10 @@ export async function processCampaignFeeds(campaignId: number): Promise<{
     
     try {
       const articles = await fetchFeed(url);
-      result.fetched += articles.length;
+      const limitedArticles = articles.slice(0, 30);
+      result.fetched += limitedArticles.length;
 
-      for (const article of articles) {
+      for (const article of limitedArticles) {
         const isNew = await isNewArticle(article.guid);
         
         if (isNew) {
@@ -103,6 +104,7 @@ export async function processCampaignFeeds(campaignId: number): Promise<{
             sourceUrl: article.link,
             sourceGuid: article.guid,
             sourceSnippet: article.snippet,
+            pubDate: article.pubDate,
             imageUrl: article.imageUrl,
             status: "draft",
           };

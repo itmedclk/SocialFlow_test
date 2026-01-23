@@ -147,13 +147,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDraftPosts(campaignId?: number): Promise<Post[]> {
-    const query = db.select().from(posts).where(eq(posts.status, 'draft'));
-    
     if (campaignId !== undefined) {
-      return await query.where(eq(posts.campaignId, campaignId));
+      return await db
+        .select()
+        .from(posts)
+        .where(eq(posts.campaignId, campaignId))
+        .where(eq(posts.status, "draft"))
+        .orderBy(desc(posts.pubDate), desc(posts.createdAt));
     }
     
-    return await query.orderBy(desc(posts.createdAt));
+    return await db
+      .select()
+      .from(posts)
+      .where(eq(posts.status, "draft"))
+      .orderBy(desc(posts.pubDate), desc(posts.createdAt));
   }
 
   // ============================================
