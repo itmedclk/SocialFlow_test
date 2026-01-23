@@ -4,6 +4,7 @@ import type { Post, Campaign } from "@shared/schema";
 interface PostlyConfig {
   apiKey: string;
   baseUrl: string;
+  workspaceId: string;
 }
 
 interface PostlyPublishPayload {
@@ -31,18 +32,20 @@ interface PostlyResponse {
 function getPostlyConfig(): PostlyConfig {
   const apiKey = process.env.POSTLY_API_KEY || "";
   const baseUrl = process.env.POSTLY_BASE_URL || "https://openapi.postly.ai/v1";
+  const workspaceId = process.env.POSTLY_WORKSPACE_ID || "";
 
-  return { apiKey, baseUrl };
+  return { apiKey, baseUrl, workspaceId };
 }
 
 export async function publishToPostly(
   post: Post,
   campaign: Campaign,
   userApiKey?: string | null,
-  workspaceId?: string | null
+  userWorkspaceId?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   const config = getPostlyConfig();
   const apiKey = userApiKey || config.apiKey;
+  const workspaceId = userWorkspaceId || config.workspaceId;
 
   if (!apiKey) {
     throw new Error("Postly API key not configured. Please set it in settings.");
