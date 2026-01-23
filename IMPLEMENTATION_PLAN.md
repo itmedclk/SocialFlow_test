@@ -79,6 +79,43 @@ This document serves as the technical roadmap for building SocialFlow. If develo
 3.  **Frontend Wiring**
     - Connect "Run Now", "Approve", and "Save" buttons to real backend API endpoints.
 
+## 🛠 Detailed Function Specification
+
+### 1. RSS Service (`server/services/rss.ts`)
+| Function | Description |
+|:---|:---|
+| `fetchFeed(url: string)` | Parses a single RSS feed URL and returns normalized items. |
+| `parseArticle(item: any)` | Extracts title, content snippet, pubDate, and OG image from raw item. |
+| `isNewArticle(guid: string)` | Checks DB to ensure we haven't processed this article before. |
+| `processCampaignFeeds(campaignId: number)` | Orchestrator that iterates all feeds for a campaign and saves new items. |
+
+### 2. AI Service (`server/services/ai.ts`)
+| Function | Description |
+|:---|:---|
+| `generateCaption(article: Article, prompt: string, model: string)` | Calls Novita/OpenAI API to generate the post caption. |
+| `validateContent(caption: string, constraints: SafetyConfig)` | Checks length and forbidden terms. Returns boolean. |
+| `constructPrompt(article: Article, template: string)` | Injects article details into the system prompt template. |
+
+### 3. Image Service (`server/services/images.ts`)
+| Function | Description |
+|:---|:---|
+| `searchImage(keywords: string[], provider: string)` | Searches Unsplash/Pexels for relevant stock images. |
+| `getPlaceholder(topic: string)` | Returns a safe fallback image if search fails. |
+| `extractOgImage(url: string)` | Scrapes the source article URL to find its `og:image` meta tag. |
+
+### 4. Campaign & Scheduling (`server/services/scheduler.ts`)
+| Function | Description |
+|:---|:---|
+| `getDueCampaigns()` | Finds campaigns whose schedule matches current time. |
+| `getPendingPosts()` | Finds posts with status='scheduled' that are past their post_date. |
+| `processQueue()` | Main loop (cron) that triggers fetching and posting jobs. |
+
+### 5. Postly Service (`server/services/postly.ts`)
+| Function | Description |
+|:---|:---|
+| `publishToPostly(post: Post, platforms: string[])` | Sends the final payload to Postly API. |
+| `getSocialAccounts()` | Fetches available accounts from Postly to map to campaign settings. |
+
 ## 🗄 Database Schema (Draft)
 
 ```typescript
@@ -89,6 +126,8 @@ topic: text
 schedule_cron: text
 rss_urls: text[]
 ai_prompt: text
+image_keywords: text[]
+image_providers: text[]
 is_active: boolean
 
 // Posts Table
@@ -101,6 +140,7 @@ image_url: text
 status: 'draft' | 'approved' | 'scheduled' | 'posted' | 'failed'
 scheduled_for: timestamp
 created_at: timestamp
+retry_count: integer
 ```
 
 ## 🔑 Environment Variables Required
