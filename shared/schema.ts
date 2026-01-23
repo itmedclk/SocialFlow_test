@@ -18,6 +18,7 @@ export const campaigns = pgTable("campaigns", {
   imageKeywords: jsonb("image_keywords").$type<string[]>().default(sql`'[]'::jsonb`),
   imageProviders: jsonb("image_providers").$type<Array<{type: string, value: string}>>().default(sql`'[]'::jsonb`),
   targetPlatforms: jsonb("target_platforms").$type<string[]>().default(sql`'[]'::jsonb`),
+  userId: text("user_id"),
   safetyForbiddenTerms: text("safety_forbidden_terms"),
   safetyMaxLength: integer("safety_max_length").default(2000),
   isActive: boolean("is_active").default(true),
@@ -99,6 +100,7 @@ export const userSettings = pgTable("user_settings", {
   postlyApiKey: text("postly_api_key"),
   unsplashAccessKey: text("unsplash_access_key"),
   pexelsApiKey: text("pexels_api_key"),
+  postlyWorkspaceId: text("postly_workspace_id"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

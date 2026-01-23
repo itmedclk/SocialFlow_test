@@ -38,7 +38,8 @@ function getPostlyConfig(): PostlyConfig {
 export async function publishToPostly(
   post: Post,
   campaign: Campaign,
-  userApiKey?: string | null
+  userApiKey?: string | null,
+  workspaceId?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   const config = getPostlyConfig();
   const apiKey = userApiKey || config.apiKey;
@@ -52,6 +53,7 @@ export async function publishToPostly(
   const payload: PostlyPublishPayload = {
     text: post.generatedCaption || "",
     target_platforms: platforms.join(","),
+    workspace: workspaceId || undefined,
   };
 
   if (post.imageUrl) {

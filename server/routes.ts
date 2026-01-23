@@ -544,6 +544,7 @@ export async function registerRoutes(
         ...settings,
         aiApiKey: settings.aiApiKey ? "••••••••" : null,
         postlyApiKey: settings.postlyApiKey ? "••••••••" : null,
+        postlyWorkspaceId: settings.postlyWorkspaceId || null,
         unsplashAccessKey: settings.unsplashAccessKey ? "••••••••" : null,
         pexelsApiKey: settings.pexelsApiKey ? "••••••••" : null,
       });
@@ -602,12 +603,19 @@ export async function registerRoutes(
         updateData.pexelsApiKey = existingSettings.pexelsApiKey;
       }
       
+      if (req.body.postlyWorkspaceId !== undefined) {
+        updateData.postlyWorkspaceId = req.body.postlyWorkspaceId || null;
+      } else if (existingSettings) {
+        updateData.postlyWorkspaceId = existingSettings.postlyWorkspaceId;
+      }
+      
       const settings = await storage.upsertUserSettings(updateData);
       
       res.json({
         ...settings,
         aiApiKey: settings.aiApiKey ? "••••••••" : null,
         postlyApiKey: settings.postlyApiKey ? "••••••••" : null,
+        postlyWorkspaceId: settings.postlyWorkspaceId || null,
         unsplashAccessKey: settings.unsplashAccessKey ? "••••••••" : null,
         pexelsApiKey: settings.pexelsApiKey ? "••••••••" : null,
       });

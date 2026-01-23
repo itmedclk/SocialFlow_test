@@ -53,6 +53,7 @@ export class DatabaseStorage implements IStorage {
           postlyApiKey: settings.postlyApiKey,
           unsplashAccessKey: settings.unsplashAccessKey,
           pexelsApiKey: settings.pexelsApiKey,
+          postlyWorkspaceId: settings.postlyWorkspaceId,
           updatedAt: new Date(),
         },
       })

@@ -34,6 +34,7 @@ interface UserSettings {
   aiModel: string | null;
   globalAiPrompt: string | null;
   postlyApiKey: string | null;
+  postlyWorkspaceId: string | null;
   unsplashAccessKey: string | null;
   pexelsApiKey: string | null;
 }
@@ -50,6 +51,7 @@ export default function Settings() {
     aiModel: "deepseek/deepseek-v3-0324",
     globalAiPrompt: "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.",
     postlyApiKey: "",
+    postlyWorkspaceId: "",
     unsplashAccessKey: "",
     pexelsApiKey: "",
   });
@@ -77,6 +79,7 @@ export default function Settings() {
         aiModel: settings.aiModel || "deepseek/deepseek-v3-0324",
         globalAiPrompt: settings.globalAiPrompt || "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.",
         postlyApiKey: settings.postlyApiKey || "",
+        postlyWorkspaceId: settings.postlyWorkspaceId || "",
         unsplashAccessKey: settings.unsplashAccessKey || "",
         pexelsApiKey: settings.pexelsApiKey || "",
       });
@@ -342,39 +345,57 @@ export default function Settings() {
                   <CardTitle>Postly Publishing</CardTitle>
                 </div>
                 <CardDescription>
-                  Your Postly API key for publishing to social media platforms.
+                  Your Postly API key and Workspace ID for publishing to social media platforms.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Label htmlFor="postlyApiKey">API Key</Label>
-                <div className="relative">
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="postlyApiKey">API Key</Label>
+                  <div className="relative">
+                    <Input
+                      id="postlyApiKey"
+                      type={showKeys["postly"] ? "text" : "password"}
+                      placeholder="postly_..."
+                      value={formData.postlyApiKey}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          postlyApiKey: e.target.value,
+                        }))
+                      }
+                      className="pr-10 font-mono"
+                      data-testid="input-postly-api-key"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowKey("postly")}
+                      data-testid="button-toggle-postly-key"
+                    >
+                      {showKeys["postly"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postlyWorkspaceId">Workspace ID</Label>
                   <Input
-                    id="postlyApiKey"
-                    type={showKeys["postly"] ? "text" : "password"}
-                    placeholder="postly_..."
-                    value={formData.postlyApiKey}
+                    id="postlyWorkspaceId"
+                    placeholder="Workspace ID"
+                    value={formData.postlyWorkspaceId}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        postlyApiKey: e.target.value,
+                        postlyWorkspaceId: e.target.value,
                       }))
                     }
-                    className="pr-10 font-mono"
-                    data-testid="input-postly-api-key"
+                    className="font-mono text-sm"
+                    data-testid="input-postly-workspace-id"
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleShowKey("postly")}
-                    data-testid="button-toggle-postly-key"
-                  >
-                    {showKeys["postly"] ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
                 </div>
               </CardContent>
             </Card>

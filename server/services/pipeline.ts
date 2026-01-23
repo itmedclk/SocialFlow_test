@@ -122,6 +122,7 @@ export async function publishPost(post: Post, campaign: Campaign): Promise<void>
   // Get user settings for API key
   const settings = await storage.getUserSettings(campaign.userId?.toString() || "");
   const postlyApiKey = settings?.postlyApiKey;
+  const postlyWorkspaceId = settings?.postlyWorkspaceId;
 
   let attempts = 0;
   let lastError: string | undefined;
@@ -129,7 +130,7 @@ export async function publishPost(post: Post, campaign: Campaign): Promise<void>
   while (attempts < MAX_RETRIES) {
     attempts++;
 
-    const result = await publishToPostly(post, campaign, postlyApiKey);
+    const result = await publishToPostly(post, campaign, postlyApiKey, postlyWorkspaceId);
 
     if (result.success) {
       await storage.updatePost(post.id, {
