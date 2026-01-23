@@ -232,12 +232,17 @@ export default function Review() {
   const [generating, setGenerating] = useState(false);
 
   const handleRegenerate = async () => {
-    if (!currentPost) return;
+    if (!currentPost || !activeCampaign) return;
 
     setGenerating(true);
     try {
       const response = await fetch(`/api/posts/${currentPost.id}/generate`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt || activeCampaign.aiPrompt,
+          campaignId: activeCampaign.id,
+        }),
       });
 
       const result = await response.json();

@@ -32,6 +32,7 @@ function getAIConfig(): AIConfig {
 export async function generateCaption(
   post: Post,
   campaign: Campaign,
+  overridePrompt?: string
 ): Promise<string> {
   const config = getAIConfig();
 
@@ -98,12 +99,18 @@ export async function generateCaption(
   }
 }
 
-function buildSystemPrompt(campaign: Campaign): string {
+function buildSystemPrompt(campaign: Campaign,
+                          overridePrompt?: string
+): string {
   const defaultPrompt = `You are a social media content creator. Create engaging, concise social media posts based on the article provided. 
 Keep the tone professional yet approachable. Include relevant hashtags. 
 The post should be compelling and encourage engagement.`;
 
-  const customPrompt = campaign.aiPrompt?.trim();
+  // const customPrompt = campaign.aiPrompt?.trim();
+  const basePrompt = 
+    overridePrompt?.trim() ||
+    campaign.aiPrompt?.trim() ||
+    DEFAULT_PROMPT;
 
   let prompt = customPrompt || defaultPrompt;
 
