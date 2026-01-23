@@ -119,13 +119,17 @@ export async function publishPost(post: Post, campaign: Campaign): Promise<void>
     throw new Error("Post has no caption to publish");
   }
 
+  // Get user settings for API key
+  const settings = await storage.getUserSettings(campaign.userId?.toString() || "");
+  const postlyApiKey = settings?.postlyApiKey;
+
   let attempts = 0;
   let lastError: string | undefined;
 
   while (attempts < MAX_RETRIES) {
     attempts++;
 
-    const result = await publishToPostly(post, campaign);
+    const result = await publishToPostly(post, campaign, postlyApiKey);
 
     if (result.success) {
       await storage.updatePost(post.id, {
