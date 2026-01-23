@@ -137,11 +137,16 @@ export async function registerRoutes(
     try {
       const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
       const status = req.query.status as string | undefined;
+      const includePostId = req.query.includePostId ? parseInt(req.query.includePostId as string) : undefined;
       
       let posts;
       
       if (status === 'draft') {
         posts = await storage.getDraftPosts(campaignId);
+        if (includePostId && !posts.find(p => p.id === includePostId)) {
+          const extraPost = await storage.getPost(includePostId);
+          if (extraPost) posts.push(extraPost);
+        }
       } else if (status === 'scheduled') {
         posts = await storage.getScheduledPosts();
       } else if (campaignId) {

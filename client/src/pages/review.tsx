@@ -164,12 +164,26 @@ export default function Review() {
     }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get("postId");
+    if (postId && posts.length > 0) {
+      const index = posts.findIndex(p => p.id.toString() === postId);
+      if (index !== -1) {
+        setSelectedPostIndex(index);
+      }
+    }
+  }, [posts]);
+
   const fetchPosts = async (campaignId?: number) => {
     try {
       setLoading(true);
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get("postId");
+      
       const url = campaignId
-        ? `/api/posts?campaignId=${campaignId}&status=draft`
-        : "/api/posts?status=draft";
+        ? `/api/posts?campaignId=${campaignId}&status=draft${postId ? `&includePostId=${postId}` : ""}`
+        : `/api/posts?status=draft${postId ? `&includePostId=${postId}` : ""}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch posts");
       const data = await response.json();
@@ -251,13 +265,14 @@ export default function Review() {
     if (!currentPost) return;
 
     try {
+      const scheduleTime = new Date(Date.now() + 3600000);
       const response = await fetch(`/api/posts/${currentPost.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: "scheduled",
           generatedCaption: caption,
-          scheduledFor: new Date(Date.now() + 3600000).toISOString(),
+          scheduledFor: scheduleTime.toISOString(),
         }),
       });
 
@@ -267,9 +282,22 @@ export default function Review() {
         throw new Error(errorData.error || "Failed to schedule");
       }
 
+      // Add audit log for scheduling
+      await fetch("/api/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: currentPost.campaignId,
+          postId: currentPost.id,
+          level: "info",
+          message: `Post "${currentPost.sourceTitle}" scheduled for ${scheduleTime.toLocaleString()}`,
+          metadata: { scheduledFor: scheduleTime.toISOString() }
+        }),
+      });
+
       toast({
         title: "Scheduled",
-        description: "Post queued for the next available slot.",
+        description: `Post queued for ${scheduleTime.toLocaleString()}.`,
       });
 
       await fetchPosts(activeCampaign?.id);

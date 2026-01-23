@@ -1,7 +1,9 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import type { Log } from "@shared/schema";
 
 function formatMetadata(metadata: unknown): string {
@@ -78,11 +80,20 @@ export function LogViewer() {
                     )}>
                       {log.level}
                     </span>
-                    <span className="text-slate-300 font-medium truncate">{log.message}</span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-slate-300 font-medium truncate">{log.message}</span>
+                      {log.postId && (
+                        <Link href={`/review?postId=${log.postId}`}>
+                          <Button variant="link" className="h-auto p-0 text-xs text-primary w-fit mt-1">
+                            View Scheduled Post Details
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   {log.metadata && (
                     <p className="text-slate-500 mt-1 pl-[76px] text-xs font-mono truncate">
-                      {formatMetadata(log.metadata)}
+                      {String(formatMetadata(log.metadata))}
                     </p>
                   )}
                 </div>
