@@ -7,24 +7,68 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2, ArrowLeft, Layers, Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
+import type { Campaign } from "@shared/schema";
 
 export default function CampaignEditor() {
   const [location, setLocation] = useLocation();
-  const [showKeys, setShowKeys] = useState<Record<string, any>>({});
-  const [rssUrls, setRssUrls] = useState<string[]>([
-    "https://news.google.com/rss/search?q=technology&hl=en-US&gl=US&ceid=US:en"
-  ]);
+  const params = useParams();
+  const campaignId = !params.id || params.id === 'new' ? null : parseInt(params.id);
+  
+  const [loading, setLoading] = useState(!!campaignId);
+  const [name, setName] = useState("");
+  const [topic, setTopic] = useState("");
+  const [scheduleCron, setScheduleCron] = useState("");
+  const [rssUrls, setRssUrls] = useState<string[]>([""]);
+  const [imageKeywords, setImageKeywords] = useState<string[]>([]);
   const [imageSources, setImageSources] = useState<{type: string, value: string}[]>([
-    { type: "unsplash", value: "technology, startup, business" }
+    { type: "unsplash", value: "" }
   ]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["twitter", "linkedin"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [safetyForbiddenTerms, setSafetyForbiddenTerms] = useState("");
+  const [safetyMaxLength, setSafetyMaxLength] = useState(2000);
+  const [isActive, setIsActive] = useState(true);
+  
   const { toast } = useToast();
 
-  const toggleShowKey = (key: string) => {
-    setShowKeys(prev => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    if (campaignId) {
+      fetchCampaign();
+    }
+  }, [campaignId]);
+
+  const fetchCampaign = async () => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`);
+      if (!response.ok) throw new Error('Failed to fetch campaign');
+      
+      const campaign: Campaign = await response.json();
+      setName(campaign.name);
+      setTopic(campaign.topic);
+      setScheduleCron(campaign.scheduleCron || "");
+      setRssUrls(campaign.rssUrls && campaign.rssUrls.length > 0 ? campaign.rssUrls : [""]);
+      setImageKeywords(campaign.imageKeywords || []);
+      setImageSources(campaign.imageProviders && campaign.imageProviders.length > 0 
+        ? campaign.imageProviders 
+        : [{ type: "unsplash", value: "" }]);
+      setSelectedPlatforms(campaign.targetPlatforms || []);
+      setAiPrompt(campaign.aiPrompt || "");
+      setSafetyForbiddenTerms(campaign.safetyForbiddenTerms || "");
+      setSafetyMaxLength(campaign.safetyMaxLength || 2000);
+      setIsActive(campaign.isActive ?? true);
+    } catch (error) {
+      console.error('Error fetching campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addRssUrl = () => {
@@ -34,7 +78,7 @@ export default function CampaignEditor() {
   const removeRssUrl = (index: number) => {
     const newUrls = [...rssUrls];
     newUrls.splice(index, 1);
-    setRssUrls(newUrls);
+    setRssUrls(newUrls.length > 0 ? newUrls : [""]);
   };
 
   const updateRssUrl = (index: number, value: string) => {
@@ -50,7 +94,7 @@ export default function CampaignEditor() {
   const removeImageSource = (index: number) => {
     const newSources = [...imageSources];
     newSources.splice(index, 1);
-    setImageSources(newSources);
+    setImageSources(newSources.length > 0 ? newSources : [{ type: "unsplash", value: "" }]);
   };
 
   const updateImageSource = (index: number, field: 'type' | 'value', value: string) => {
@@ -67,28 +111,90 @@ export default function CampaignEditor() {
     );
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Campaign Saved",
-      description: "Automation rules updated successfully.",
-      variant: "default",
-    });
-    setLocation("/campaigns");
+  const handleSave = async () => {
+    if (!name.trim() || !topic.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in campaign name and topic",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validRssUrls = rssUrls.filter(url => url.trim() !== "");
+    const validImageSources = imageSources.filter(source => source.value.trim() !== "");
+
+    const campaignData = {
+      name: name.trim(),
+      topic: topic.trim(),
+      scheduleCron: scheduleCron.trim() || null,
+      rssUrls: validRssUrls,
+      imageKeywords,
+      imageProviders: validImageSources,
+      targetPlatforms: selectedPlatforms,
+      aiPrompt: aiPrompt.trim() || null,
+      safetyForbiddenTerms: safetyForbiddenTerms.trim() || null,
+      safetyMaxLength,
+      isActive,
+    };
+
+    try {
+      const url = campaignId ? `/api/campaigns/${campaignId}` : '/api/campaigns';
+      const method = campaignId ? 'PATCH' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(campaignData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save campaign');
+      }
+
+      toast({
+        title: "Success",
+        description: campaignId ? "Campaign updated successfully" : "Campaign created successfully",
+        variant: "default",
+      });
+      
+      setLocation("/campaigns");
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save campaign",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="text-center py-12 text-muted-foreground">
+          Loading campaign...
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/campaigns">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Configure Campaign</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {campaignId ? "Edit Campaign" : "Create New Campaign"}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Edit settings for "Tech Startup News"
+              {campaignId ? `Configure "${name}"` : "Set up a new automation campaign"}
             </p>
           </div>
         </div>
@@ -109,12 +215,22 @@ export default function CampaignEditor() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Campaign Name</Label>
-                    <Input defaultValue="Tech Startup News" />
+                    <Label>Campaign Name *</Label>
+                    <Input 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., Tech Startup News"
+                      data-testid="input-campaign-name"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Topic / Category</Label>
-                    <Input defaultValue="Technology" />
+                    <Label>Topic / Category *</Label>
+                    <Input 
+                      value={topic} 
+                      onChange={(e) => setTopic(e.target.value)}
+                      placeholder="e.g., Technology"
+                      data-testid="input-campaign-topic"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -127,30 +243,21 @@ export default function CampaignEditor() {
                   <Clock className="h-5 w-5 text-primary" />
                   <CardTitle>Schedule</CardTitle>
                 </div>
-                <CardDescription>When should this specific campaign run?</CardDescription>
+                <CardDescription>Cron expression for when this campaign should run</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Frequency</Label>
-                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="hourly">Hourly</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Run Time</Label>
-                    <Input type="time" defaultValue="08:00" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Timezone</Label>
-                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <option value="pst">Pacific Time</option>
-                      <option value="est" selected>Eastern Time</option>
-                      <option value="utc">UTC</option>
-                    </select>
-                  </div>
+                <div className="space-y-2">
+                  <Label>Cron Expression</Label>
+                  <Input 
+                    value={scheduleCron} 
+                    onChange={(e) => setScheduleCron(e.target.value)}
+                    placeholder="0 9 * * * (Daily at 9:00 AM)"
+                    className="font-mono text-sm"
+                    data-testid="input-schedule-cron"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Examples: "0 9 * * *" (daily 9am), "0 */2 * * *" (every 2 hours)
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -167,7 +274,13 @@ export default function CampaignEditor() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>RSS Feed URLs</Label>
-                    <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs" onClick={addRssUrl}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 gap-1 text-xs" 
+                      onClick={addRssUrl}
+                      data-testid="button-add-rss"
+                    >
                       <Plus className="h-3 w-3" /> Add Source
                     </Button>
                   </div>
@@ -180,10 +293,18 @@ export default function CampaignEditor() {
                             value={url}
                             onChange={(e) => updateRssUrl(index, e.target.value)}
                             className="font-mono text-xs pl-8"
+                            placeholder="https://example.com/rss"
+                            data-testid={`input-rss-${index}`}
                           />
                         </div>
                         {rssUrls.length > 1 && (
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeRssUrl(index)}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-destructive" 
+                            onClick={() => removeRssUrl(index)}
+                            data-testid={`button-remove-rss-${index}`}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
@@ -206,7 +327,13 @@ export default function CampaignEditor() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Specific Keyword Overrides</Label>
-                    <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs" onClick={addImageSource}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 gap-1 text-xs" 
+                      onClick={addImageSource}
+                      data-testid="button-add-image-source"
+                    >
                       <Plus className="h-3 w-3" /> Add Keyword
                     </Button>
                   </div>
@@ -218,23 +345,30 @@ export default function CampaignEditor() {
                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                              value={source.type}
                              onChange={(e) => updateImageSource(index, 'type', e.target.value)}
+                             data-testid={`select-image-provider-${index}`}
                            >
                              <option value="unsplash">Unsplash</option>
                              <option value="pexels">Pexels</option>
                              <option value="wikimedia">Wikimedia</option>
-                             <option value="google">Google Images</option>
                            </select>
                         </div>
                         <div className="relative flex-1">
                           <Input 
                             value={source.value}
                             onChange={(e) => updateImageSource(index, 'value', e.target.value)}
-                            placeholder="Force search for specific keywords (e.g. nature)"
+                            placeholder="e.g., technology, startup"
                             className="text-sm"
+                            data-testid={`input-image-keywords-${index}`}
                           />
                         </div>
                         {imageSources.length > 1 && (
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeImageSource(index)}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-destructive" 
+                            onClick={() => removeImageSource(index)}
+                            data-testid={`button-remove-image-source-${index}`}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
@@ -255,22 +389,17 @@ export default function CampaignEditor() {
                   <Key className="h-5 w-5 text-primary" />
                   <CardTitle>AI & Generation Settings</CardTitle>
                 </div>
-                <CardDescription>Override global AI settings for this campaign.</CardDescription>
+                <CardDescription>Custom AI prompt for this campaign</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between border p-3 rounded-md bg-muted/10">
-                   <div className="space-y-0.5">
-                     <Label className="text-sm">Use Global AI Keys</Label>
-                     <p className="text-[10px] text-muted-foreground">Disable to set a custom model/key for this topic.</p>
-                   </div>
-                   <Switch defaultChecked />
-                </div>
-
                 <div className="space-y-2">
                   <Label>System Prompt Template</Label>
                   <textarea 
                     className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    defaultValue="You are a tech journalist. Summarize this news for a LinkedIn audience. Focus on business impact and innovation. Keep it professional but engaging."
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g., You are a tech journalist. Summarize this news for a LinkedIn audience..."
+                    data-testid="textarea-ai-prompt"
                   />
                 </div>
               </CardContent>
@@ -284,12 +413,21 @@ export default function CampaignEditor() {
             {/* Save Actions */}
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-4 space-y-3">
-                <Button className="w-full gap-2 shadow-md" size="lg" onClick={handleSave}>
+                <Button 
+                  className="w-full gap-2 shadow-md" 
+                  size="lg" 
+                  onClick={handleSave}
+                  data-testid="button-save-campaign"
+                >
                   <Save className="h-4 w-4" /> Save Campaign
                 </Button>
                 <div className="flex items-center justify-between px-2">
                   <Label className="cursor-pointer">Active</Label>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={isActive} 
+                    onCheckedChange={setIsActive}
+                    data-testid="switch-is-active"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -306,7 +444,10 @@ export default function CampaignEditor() {
                     { id: "facebook", label: "Facebook" },
                     { id: "twitter", label: "Twitter (X)" },
                     { id: "linkedin", label: "LinkedIn" },
-                    { id: "telegram", label: "Telegram" }
+                    { id: "telegram", label: "Telegram" },
+                    { id: "pinterest", label: "Pinterest" },
+                    { id: "tiktok", label: "TikTok" },
+                    { id: "youtube", label: "YouTube" }
                   ].map((platform) => (
                     <div 
                       key={platform.id}
@@ -317,6 +458,7 @@ export default function CampaignEditor() {
                           : "hover:bg-muted/50 border-input"}
                       `}
                       onClick={() => togglePlatform(platform.id)}
+                      data-testid={`platform-${platform.id}`}
                     >
                       <Checkbox 
                         id={platform.id} 
@@ -343,11 +485,23 @@ export default function CampaignEditor() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs">Forbidden Terms</Label>
-                  <Input className="h-8 text-xs" defaultValue="scam, hack, crypto" />
+                  <Input 
+                    className="h-8 text-xs" 
+                    value={safetyForbiddenTerms}
+                    onChange={(e) => setSafetyForbiddenTerms(e.target.value)}
+                    placeholder="e.g., scam, hack"
+                    data-testid="input-forbidden-terms"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Max Length</Label>
-                  <Input type="number" className="h-8 text-xs" defaultValue={2000} />
+                  <Input 
+                    type="number" 
+                    className="h-8 text-xs" 
+                    value={safetyMaxLength}
+                    onChange={(e) => setSafetyMaxLength(parseInt(e.target.value) || 2000)}
+                    data-testid="input-max-length"
+                  />
                 </div>
               </CardContent>
             </Card>
