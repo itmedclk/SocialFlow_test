@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   RefreshCw, 
@@ -15,21 +16,32 @@ import {
   Sparkles, 
   Image as ImageIcon,
   MessageSquare,
-  Save
+  Save,
+  Wand2
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const MOCK_CAMPAIGNS = [
+  { id: "1", name: "Alternative Health Daily", topic: "Health & Wellness" },
+  { id: "2", name: "Tech Startup News", topic: "Technology" },
+  { id: "3", name: "Motivational Quotes", topic: "Lifestyle" }
+];
+
 export default function Review() {
   const { toast } = useToast();
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("2");
+  const [prompt, setPrompt] = useState("You are a tech journalist. Summarize this news for a LinkedIn audience. Focus on business impact and innovation. Keep it professional but engaging.");
   const [caption, setCaption] = useState(
     "✨ Discover the power of mindfulness in your daily routine.\n\nRecent studies suggest that just 10 minutes a day can significantly reduce stress levels and improve overall well-being. It's not about emptying your mind, but rather observing the present moment without judgment.\n\nStart small today. Take 3 deep breaths right now. 🌿\n\nThis content is for informational purposes only and is not medical advice.\n\n#mindfulness #health #wellness #holistic #stressrelief #meditation #selfcare #mentalhealth"
   );
 
+  const activeCampaign = MOCK_CAMPAIGNS.find(c => c.id === selectedCampaign) || MOCK_CAMPAIGNS[0];
+
   const handleRegenerate = () => {
     toast({
       title: "Regenerating Content",
-      description: "Request sent to Novita AI model...",
+      description: `Request sent to Novita AI model for ${activeCampaign.name} using custom prompt...`,
     });
   };
 
@@ -50,24 +62,40 @@ export default function Review() {
             Review and refine AI-generated drafts before scheduling.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 text-destructive hover:text-destructive">
-            <X className="h-4 w-4" />
-            Reject Draft
-          </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/25" onClick={handleApprove}>
-            <Check className="h-4 w-4" />
-            Approve & Schedule
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+             <div className="w-[250px]">
+               <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select Campaign" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {MOCK_CAMPAIGNS.map(campaign => (
+                     <SelectItem key={campaign.id} value={campaign.id}>
+                       {campaign.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2 text-destructive hover:text-destructive">
+              <X className="h-4 w-4" />
+              Reject Draft
+            </Button>
+            <Button className="gap-2 shadow-lg shadow-primary/25" onClick={handleApprove}>
+              <Check className="h-4 w-4" />
+              Approve & Schedule
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
         
         {/* Left Column: Source & Controls */}
-        <div className="space-y-6 flex flex-col h-full">
-          <Card className="flex-1 flex flex-col overflow-hidden">
-            <CardHeader className="pb-3">
+        <div className="space-y-6 flex flex-col h-full overflow-y-auto pr-2 pb-4">
+          <Card className="flex-none flex flex-col overflow-hidden max-h-[300px]">
+            <CardHeader className="pb-3 py-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ExternalLink className="h-4 w-4" />
@@ -76,14 +104,14 @@ export default function Review() {
                 <Badge variant="secondary">New Arrival</Badge>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto">
-              <h3 className="font-bold text-xl mb-2">
+            <CardContent className="flex-1 overflow-y-auto">
+              <h3 className="font-bold text-lg mb-1">
                 New Study Shows Benefits of Mindfulness for Stress Reduction
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-3">
                 Source: HealthNews Daily • 2 hours ago
               </p>
-              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground text-sm">
                 <p>
                   A groundbreaking study published in the Journal of Psychology demonstrates that brief mindfulness interventions can lower cortisol levels by up to 25% in high-stress individuals. The research followed 500 participants over a 6-week period...
                 </p>
@@ -92,25 +120,25 @@ export default function Review() {
                 </p>
               </div>
             </CardContent>
-            <CardFooter className="bg-muted/20 border-t py-3">
-               <Button variant="ghost" size="sm" className="w-full gap-2">
+            <CardFooter className="bg-muted/20 border-t py-2">
+               <Button variant="ghost" size="sm" className="w-full gap-2 h-8 text-xs">
                  View Original Source <ExternalLink className="h-3 w-3" />
                </Button>
             </CardFooter>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 py-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
                   Generation Controls
                 </CardTitle>
                 <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 text-primary border-primary/20">
-                  Config: Novita AI
+                  Config: {activeCampaign.topic}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-2">
                    <Label className="text-xs">Model Override</Label>
@@ -151,6 +179,19 @@ export default function Review() {
                   disabled
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <Wand2 className="h-3 w-3 text-primary" />
+                  System Prompt
+                </Label>
+                <Textarea 
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="min-h-[80px] text-xs leading-relaxed resize-y font-mono bg-muted/20"
+                />
+              </div>
+
               <Button variant="secondary" className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors" onClick={handleRegenerate}>
                 <RefreshCw className="h-4 w-4" />
                 Regenerate Caption
