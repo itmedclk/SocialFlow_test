@@ -278,31 +278,33 @@ export default function Review() {
     }
   };
 
-  const handleApprove = async () => {
+  const handlePost = async () => {
     if (!currentPost) return;
 
     try {
-      const response = await fetch(`/api/posts/${currentPost.id}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/posts/${currentPost.id}/publish`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "approved",
           generatedCaption: caption,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to approve");
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Failed to post");
+      }
 
       toast({
-        title: "Approved",
-        description: "Post approved and ready for publishing.",
+        title: "Posted Successfully",
+        description: "Content has been sent to Postly.ai.",
       });
 
       await fetchPosts(activeCampaign?.id);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to approve post",
+        description: error instanceof Error ? error.message : "Failed to publish post",
         variant: "destructive",
       });
     }
@@ -551,12 +553,12 @@ export default function Review() {
             </Button>
             <Button
               className="gap-2 shadow-lg shadow-primary/25"
-              onClick={handleApprove}
+              onClick={handlePost}
               disabled={!currentPost}
-              data-testid="button-approve"
+              data-testid="button-post"
             >
-              <Check className="h-4 w-4" />
-              Approve
+              <Send className="h-4 w-4" />
+              Post
             </Button>
           </div>
         </div>

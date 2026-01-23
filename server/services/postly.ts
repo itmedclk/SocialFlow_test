@@ -28,12 +28,14 @@ function getPostlyConfig(): PostlyConfig {
 
 export async function publishToPostly(
   post: Post,
-  campaign: Campaign
+  campaign: Campaign,
+  userApiKey?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   const config = getPostlyConfig();
+  const apiKey = userApiKey || config.apiKey;
 
-  if (!config.apiKey) {
-    throw new Error("POSTLY_API_KEY environment variable is not set");
+  if (!apiKey) {
+    throw new Error("Postly API key not configured. Please set it in settings.");
   }
 
   const platforms = campaign.targetPlatforms || [];
@@ -56,7 +58,7 @@ export async function publishToPostly(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(payload),
     });
