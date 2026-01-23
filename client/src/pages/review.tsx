@@ -332,13 +332,19 @@ export default function Review() {
           description: "A relevant image has been added to the post.",
         });
 
-        setPosts((prev) =>
-          prev.map((p) =>
-            p.id === currentPost.id
-              ? { ...p, imageUrl: result.post.imageUrl, imageCredit: result.post.imageCredit }
-              : p
-          )
-        );
+        // Update the posts list which will automatically update currentPost via selectedPostIndex
+        setPosts((prev) => {
+          const newPosts = [...prev];
+          const index = newPosts.findIndex(p => p.id === result.post.id);
+          if (index !== -1) {
+            newPosts[index] = {
+              ...newPosts[index],
+              imageUrl: result.post.imageUrl,
+              imageCredit: result.post.imageCredit
+            };
+          }
+          return newPosts;
+        });
       } else {
         toast({
           title: "No Image Found",

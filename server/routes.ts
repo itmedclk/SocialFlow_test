@@ -661,10 +661,12 @@ export async function registerRoutes(
       }
 
       if (imageUrl) {
+        console.log(`[ImageSearch] Found image for post ${id}: ${imageUrl}`);
         await storage.updatePost(id, { imageUrl, imageCredit });
         const updatedPost = await storage.getPost(id);
         res.json({ success: true, post: updatedPost });
       } else {
+        console.log(`[ImageSearch] No image found for post ${id}`);
         res.json({ success: false, message: "No image found" });
       }
     } catch (error) {

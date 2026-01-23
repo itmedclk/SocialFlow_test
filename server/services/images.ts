@@ -200,7 +200,14 @@ export async function extractOgImage(url: string): Promise<string | null> {
     const ogMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
                     html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
 
-    return ogMatch ? ogMatch[1] : null;
+    const ogImage = ogMatch ? ogMatch[1] : null;
+
+    // Skip low-quality thumbnails or restricted Google News images
+    if (ogImage && (ogImage.includes('googleusercontent.com') || ogImage.includes('news.google.com'))) {
+      return null;
+    }
+
+    return ogImage;
   } catch (error) {
     console.error("Failed to extract OG image:", error);
     return null;
