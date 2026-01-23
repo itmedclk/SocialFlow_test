@@ -162,7 +162,12 @@ export function validateContent(
   }
 
   for (const term of config.forbiddenTerms) {
-    if (term && caption.toLowerCase().includes(term.toLowerCase())) {
+    if (term && term.length > 2) { // Only check terms with more than 2 characters to avoid over-matching
+      const regex = new RegExp(`\\b${term}\\b`, 'i');
+      if (regex.test(caption)) {
+        issues.push(`Contains forbidden term: "${term}"`);
+      }
+    } else if (term && caption.toLowerCase().includes(term.toLowerCase())) {
       issues.push(`Contains forbidden term: "${term}"`);
     }
   }

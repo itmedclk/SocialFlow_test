@@ -665,10 +665,17 @@ export default function Review() {
                     Source Article
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {currentPost?.status === "scheduled" && currentPost?.scheduledFor && (
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex items-center gap-1.5 px-2 py-0.5 text-[10px]">
+                      <Badge 
+                        variant="outline" 
+                        className={`flex items-center gap-1.5 px-2 py-0.5 text-[10px] ${
+                          currentPost.status === 'failed' 
+                            ? 'bg-destructive/10 text-destructive border-destructive/20' 
+                            : 'bg-primary/5 text-primary border-primary/20'
+                        }`}
+                      >
                         <CalendarClock className="h-3 w-3" />
-                        Scheduled: {new Date(currentPost.scheduledFor).toLocaleString('en-GB', { 
+                        {currentPost.status === 'failed' ? 'Failed: ' : 'Scheduled: '}
+                        {new Date(currentPost.scheduledFor).toLocaleString('en-GB', { 
                           day: '2-digit', 
                           month: '2-digit', 
                           year: 'numeric', 
@@ -677,7 +684,6 @@ export default function Review() {
                           hour12: false 
                         })}
                       </Badge>
-                    )}
                     <Badge variant="secondary" className="capitalize">{currentPost?.status || "Draft"}</Badge>
                   </div>
                 </div>
@@ -698,6 +704,17 @@ export default function Review() {
                 <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground text-sm">
                   <p>{currentPost?.sourceSnippet || "No content available"}</p>
                 </div>
+                {currentPost?.failureReason && (
+                  <div className="mt-4 p-3 border border-destructive/20 bg-destructive/5 rounded-md">
+                    <p className="text-xs font-bold text-destructive flex items-center gap-1 mb-1">
+                      <X className="h-3 w-3" />
+                      Post Failed to Publish
+                    </p>
+                    <p className="text-xs text-destructive/80 italic">
+                      {currentPost.failureReason}
+                    </p>
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="bg-muted/20 border-t py-2">
                 {currentPost?.sourceUrl && (
