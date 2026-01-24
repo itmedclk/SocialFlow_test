@@ -20,21 +20,23 @@ interface ChatCompletionResponse {
   }>;
 }
 
-async function getAIConfig(userId?: string): Promise<AIConfig> {
-  let baseUrl = process.env.AI_BASE_URL || "https://api.novita.ai/openai";
-  let apiKey = process.env.AI_API_KEY || "";
-  let model = process.env.AI_MODEL || "deepseek/deepseek-v3.2";
+async function getAIConfig(userId?: string | null): Promise<AIConfig> {
+  const baseUrlEnv = process.env.AI_BASE_URL || "https://api.novita.ai/openai";
+  const apiKeyEnv = process.env.AI_API_KEY || "";
+  const modelEnv = process.env.AI_MODEL || "deepseek/deepseek-v3.2";
 
   if (userId) {
     const settings = await storage.getUserSettings(userId);
     if (settings) {
-      if (settings.aiBaseUrl) baseUrl = settings.aiBaseUrl;
-      if (settings.aiApiKey) apiKey = settings.aiApiKey;
-      if (settings.aiModel) model = settings.aiModel;
+      return {
+        baseUrl: settings.aiBaseUrl || baseUrlEnv,
+        apiKey: settings.aiApiKey || apiKeyEnv,
+        model: settings.aiModel || modelEnv
+      };
     }
   }
 
-  return { baseUrl, apiKey, model };
+  return { baseUrl: baseUrlEnv, apiKey: apiKeyEnv, model: modelEnv };
 }
 
 export async function generateCaption(
@@ -42,7 +44,7 @@ export async function generateCaption(
   campaign: Campaign,
   overridePrompt?: string
 ): Promise<string> {
-  const config = await getAIConfig(campaign.userId?.toString());
+  const config = await getAIConfig(campaign.userId);
 
   if (!config.apiKey) {
     throw new Error("AI_API_KEY environment variable is not set");
