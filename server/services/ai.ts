@@ -1,4 +1,6 @@
 import { storage } from "../storage";
+import { db } from "../db";
+import { userSettings } from "@shared/schema";
 import type { Post, Campaign } from "@shared/schema";
 
 interface AIConfig {
@@ -25,19 +27,32 @@ async function getAIConfig(userId?: string | null): Promise<AIConfig> {
   const apiKeyEnv = process.env.AI_API_KEY || "";
   const modelEnv = process.env.AI_MODEL || "deepseek/deepseek-v3.2";
 
-  if (userId) {
+  console.log(`[AI] Getting config for user identifier: "${userId}"`);
+
+  // Try to find ANY user settings if the provided userId is missing
+  let targetUserId = userId;
+  
+  if (!targetUserId) {
+    const allSettings = await db.select().from(userSettings).limit(1);
+    if (allSettings.length > 0) {
+      targetUserId = allSettings[0].userId;
+      console.log(`[AI] No userId provided, using first found user: "${targetUserId}"`);
+    }
+  }
+
+  if (targetUserId) {
     try {
-      // Ensure we use the string version of the ID for storage lookups
-      const settings = await storage.getUserSettings(userId.toString());
-      if (settings) {
+      const settings = await storage.getUserSettings(targetUserId.toString());
+      console.log(`[AI] Found settings for user ${targetUserId}:`, settings ? "Yes" : "No");
+      if (settings && settings.aiApiKey) {
         return {
           baseUrl: settings.aiBaseUrl || baseUrlEnv,
-          apiKey: settings.aiApiKey || apiKeyEnv,
+          apiKey: settings.aiApiKey,
           model: settings.aiModel || modelEnv
         };
       }
     } catch (error) {
-      console.error(`[AI] Error fetching settings for user ${userId}:`, error);
+      console.error(`[AI] Error fetching settings for user ${targetUserId}:`, error);
     }
   }
 

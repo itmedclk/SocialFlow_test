@@ -35,8 +35,10 @@ export class DatabaseStorage implements IStorage {
   // User Settings Methods
   // ============================================
   async getUserSettings(userId: string): Promise<UserSettings | undefined> {
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
-    return settings || undefined;
+    console.log(`[Storage] Fetching settings for userId: "${userId}"`);
+    const settings = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    console.log(`[Storage] Found ${settings.length} records for userId: "${userId}"`);
+    return settings[0] || undefined;
   }
 
   async upsertUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
