@@ -762,6 +762,16 @@ export default function Review() {
                   {currentPost?.sourceUrl
                     ? new URL(currentPost.sourceUrl).hostname
                     : "Unknown"}
+                  {currentPost?.pubDate && (
+                    <> • Published: {new Date(currentPost.pubDate).toLocaleString('en-GB', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric', 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false 
+                    })}</>
+                  )}
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground text-sm">
                   <p>{currentPost?.sourceSnippet || "No content available"}</p>
