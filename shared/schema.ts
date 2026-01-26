@@ -43,6 +43,7 @@ export type Campaign = typeof campaigns.$inferSelect;
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   campaignId: integer("campaign_id").notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
+  userId: text("user_id"),
   sourceTitle: text("source_title").notNull(),
   sourceUrl: text("source_url").notNull(),
   sourceGuid: text("source_guid").notNull(),
@@ -77,6 +78,7 @@ export const logs = pgTable("logs", {
   id: serial("id").primaryKey(),
   campaignId: integer("campaign_id").references(() => campaigns.id, { onDelete: 'set null' }),
   postId: integer("post_id").references(() => posts.id, { onDelete: 'set null' }),
+  userId: text("user_id"),
   level: text("level").$type<'info' | 'warning' | 'error'>().notNull(),
   message: text("message").notNull(),
   metadata: jsonb("metadata"),
