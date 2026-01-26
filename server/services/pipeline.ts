@@ -27,6 +27,7 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
         await storage.createLog({
           campaignId: campaign.id,
           postId: post.id,
+          userId: campaign.userId,
           level: "warning",
           message: `Caption failed safety check, regenerating (attempt ${attempt}/${MAX_RETRIES})`,
           metadata: { issues: safetyResult.issues },
@@ -64,6 +65,7 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
           await storage.createLog({
             campaignId: campaign.id,
             postId: post.id,
+            userId: campaign.userId,
             level: "warning",
             message: `Image search failed, retrying (attempt ${imageAttempts}/${MAX_RETRIES})`,
           });
@@ -91,6 +93,7 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
     await storage.createLog({
       campaignId: campaign.id,
       postId: post.id,
+      userId: campaign.userId,
       level: "error",
       message: `Content generation failed: ${errorMessage}`,
     });
@@ -126,6 +129,7 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
       await storage.createLog({
         campaignId: campaign.id,
         postId: post.id,
+        userId: campaign.userId,
         level: "info",
         message: `Post published successfully on attempt ${attempts}`,
       });
@@ -139,6 +143,7 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
       await storage.createLog({
         campaignId: campaign.id,
         postId: post.id,
+        userId: campaign.userId,
         level: "warning",
         message: `Publish failed, retrying (attempt ${attempts}/${MAX_RETRIES}): ${lastError}`,
       });
@@ -156,6 +161,7 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
   await storage.createLog({
     campaignId: campaign.id,
     postId: post.id,
+    userId: campaign.userId,
     level: "error",
     message: `Post failed after ${MAX_RETRIES} attempts: ${lastError}`,
   });
