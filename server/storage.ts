@@ -7,27 +7,27 @@ export interface IStorage {
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
   upsertUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
   
-  // Campaign methods
-  getCampaign(id: number): Promise<Campaign | undefined>;
-  getAllCampaigns(): Promise<Campaign[]>;
-  getActiveCampaigns(): Promise<Campaign[]>;
+  // Campaign methods (with userId filtering)
+  getCampaign(id: number, userId?: string): Promise<Campaign | undefined>;
+  getAllCampaigns(userId?: string): Promise<Campaign[]>;
+  getActiveCampaigns(userId?: string): Promise<Campaign[]>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
-  updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined>;
-  deleteCampaign(id: number): Promise<boolean>;
+  updateCampaign(id: number, campaign: Partial<InsertCampaign>, userId?: string): Promise<Campaign | undefined>;
+  deleteCampaign(id: number, userId?: string): Promise<boolean>;
   
-  // Post methods
-  getPost(id: number): Promise<Post | undefined>;
-  getPostsByCampaign(campaignId: number, limit?: number): Promise<Post[]>;
-  getPostByGuid(guid: string): Promise<Post | undefined>;
+  // Post methods (with userId filtering)
+  getPost(id: number, userId?: string): Promise<Post | undefined>;
+  getPostsByCampaign(campaignId: number, limit?: number, userId?: string): Promise<Post[]>;
+  getPostByGuid(guid: string, userId?: string): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
-  updatePost(id: number, post: Partial<InsertPost>): Promise<Post | undefined>;
-  getScheduledPosts(): Promise<Post[]>;
-  getDraftPosts(campaignId?: number): Promise<Post[]>;
+  updatePost(id: number, post: Partial<InsertPost>, userId?: string): Promise<Post | undefined>;
+  getScheduledPosts(userId?: string): Promise<Post[]>;
+  getDraftPosts(campaignId?: number, userId?: string): Promise<Post[]>;
   
-  // Log methods
+  // Log methods (with userId filtering)
   createLog(log: InsertLog): Promise<Log>;
-  getLogsByCampaign(campaignId: number, limit?: number): Promise<Log[]>;
-  getAllLogs(limit?: number): Promise<Log[]>;
+  getLogsByCampaign(campaignId: number, limit?: number, userId?: string): Promise<Log[]>;
+  getAllLogs(limit?: number, userId?: string): Promise<Log[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -66,16 +66,26 @@ export class DatabaseStorage implements IStorage {
   // ============================================
   // Campaign Methods
   // ============================================
-  async getCampaign(id: number): Promise<Campaign | undefined> {
+  async getCampaign(id: number, userId?: string): Promise<Campaign | undefined> {
+    if (userId) {
+      const [campaign] = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
+      return campaign || undefined;
+    }
     const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
     return campaign || undefined;
   }
 
-  async getAllCampaigns(): Promise<Campaign[]> {
+  async getAllCampaigns(userId?: string): Promise<Campaign[]> {
+    if (userId) {
+      return await db.select().from(campaigns).where(eq(campaigns.userId, userId)).orderBy(desc(campaigns.createdAt));
+    }
     return await db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
   }
 
-  async getActiveCampaigns(): Promise<Campaign[]> {
+  async getActiveCampaigns(userId?: string): Promise<Campaign[]> {
+    if (userId) {
+      return await db.select().from(campaigns).where(and(eq(campaigns.isActive, true), eq(campaigns.userId, userId)));
+    }
     return await db.select().from(campaigns).where(eq(campaigns.isActive, true));
   }
 
@@ -87,7 +97,15 @@ export class DatabaseStorage implements IStorage {
     return campaign;
   }
 
-  async updateCampaign(id: number, updateData: Partial<InsertCampaign>): Promise<Campaign | undefined> {
+  async updateCampaign(id: number, updateData: Partial<InsertCampaign>, userId?: string): Promise<Campaign | undefined> {
+    if (userId) {
+      const [campaign] = await db
+        .update(campaigns)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)))
+        .returning();
+      return campaign || undefined;
+    }
     const [campaign] = await db
       .update(campaigns)
       .set({ ...updateData, updatedAt: new Date() })
@@ -96,7 +114,11 @@ export class DatabaseStorage implements IStorage {
     return campaign || undefined;
   }
 
-  async deleteCampaign(id: number): Promise<boolean> {
+  async deleteCampaign(id: number, userId?: string): Promise<boolean> {
+    if (userId) {
+      const result = await db.delete(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
+      return (result.rowCount ?? 0) > 0;
+    }
     const result = await db.delete(campaigns).where(eq(campaigns.id, id));
     return (result.rowCount ?? 0) > 0;
   }
@@ -104,12 +126,24 @@ export class DatabaseStorage implements IStorage {
   // ============================================
   // Post Methods
   // ============================================
-  async getPost(id: number): Promise<Post | undefined> {
+  async getPost(id: number, userId?: string): Promise<Post | undefined> {
+    if (userId) {
+      const [post] = await db.select().from(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+      return post || undefined;
+    }
     const [post] = await db.select().from(posts).where(eq(posts.id, id));
     return post || undefined;
   }
 
-  async getPostsByCampaign(campaignId: number, limit: number = 50): Promise<Post[]> {
+  async getPostsByCampaign(campaignId: number, limit: number = 50, userId?: string): Promise<Post[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.campaignId, campaignId), eq(posts.userId, userId)))
+        .orderBy(desc(posts.createdAt))
+        .limit(limit);
+    }
     return await db
       .select()
       .from(posts)
@@ -118,7 +152,11 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getPostByGuid(guid: string): Promise<Post | undefined> {
+  async getPostByGuid(guid: string, userId?: string): Promise<Post | undefined> {
+    if (userId) {
+      const [post] = await db.select().from(posts).where(and(eq(posts.sourceGuid, guid), eq(posts.userId, userId)));
+      return post || undefined;
+    }
     const [post] = await db.select().from(posts).where(eq(posts.sourceGuid, guid));
     return post || undefined;
   }
@@ -131,7 +169,15 @@ export class DatabaseStorage implements IStorage {
     return post;
   }
 
-  async updatePost(id: number, updateData: Partial<InsertPost>): Promise<Post | undefined> {
+  async updatePost(id: number, updateData: Partial<InsertPost>, userId?: string): Promise<Post | undefined> {
+    if (userId) {
+      const [post] = await db
+        .update(posts)
+        .set({ ...updateData, updatedAt: new Date() } as any)
+        .where(and(eq(posts.id, id), eq(posts.userId, userId)))
+        .returning();
+      return post || undefined;
+    }
     const [post] = await db
       .update(posts)
       .set({ ...updateData, updatedAt: new Date() } as any)
@@ -140,7 +186,14 @@ export class DatabaseStorage implements IStorage {
     return post || undefined;
   }
 
-  async getScheduledPosts(): Promise<Post[]> {
+  async getScheduledPosts(userId?: string): Promise<Post[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.status, 'scheduled' as any), eq(posts.userId, userId)))
+        .orderBy(posts.scheduledFor);
+    }
     return await db
       .select()
       .from(posts)
@@ -148,8 +201,24 @@ export class DatabaseStorage implements IStorage {
       .orderBy(posts.scheduledFor);
   }
 
-  async getDraftPosts(campaignId?: number): Promise<Post[]> {
+  async getDraftPosts(campaignId?: number, userId?: string): Promise<Post[]> {
     const draftStatus = "draft" as const;
+    if (userId) {
+      if (campaignId !== undefined) {
+        return await db
+          .select()
+          .from(posts)
+          .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus), eq(posts.userId, userId)))
+          .orderBy(desc(posts.pubDate), desc(posts.createdAt))
+          .limit(30);
+      }
+      return await db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.status, draftStatus), eq(posts.userId, userId)))
+        .orderBy(desc(posts.pubDate), desc(posts.createdAt))
+        .limit(30);
+    }
     if (campaignId !== undefined) {
       return await db
         .select()
@@ -178,7 +247,15 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async getLogsByCampaign(campaignId: number, limit: number = 100): Promise<Log[]> {
+  async getLogsByCampaign(campaignId: number, limit: number = 100, userId?: string): Promise<Log[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(logs)
+        .where(and(eq(logs.campaignId, campaignId), eq(logs.userId, userId)))
+        .orderBy(desc(logs.createdAt))
+        .limit(limit);
+    }
     return await db
       .select()
       .from(logs)
@@ -187,7 +264,15 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getAllLogs(limit: number = 100): Promise<Log[]> {
+  async getAllLogs(limit: number = 100, userId?: string): Promise<Log[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(logs)
+        .where(eq(logs.userId, userId))
+        .orderBy(desc(logs.createdAt))
+        .limit(limit);
+    }
     return await db
       .select()
       .from(logs)
