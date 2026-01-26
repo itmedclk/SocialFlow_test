@@ -906,7 +906,7 @@ export default function Review() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <MessageSquare className="h-4 w-4 text-primary" />
-                    Instagram Preview
+                    Post Preview
                   </CardTitle>
                   <Badge variant="outline" className="font-mono text-[10px] bg-background">
                     Preview Mode
@@ -936,7 +936,7 @@ export default function Review() {
                     value="preview"
                     className="flex-1 overflow-y-auto p-4 m-0 bg-slate-50 dark:bg-slate-900/50"
                   >
-                    {/* Mock Instagram Post */}
+                    {/* Mock Post */}
                     <div className="max-w-[400px] mx-auto bg-card border rounded-xl overflow-hidden shadow-sm">
                       <div className="p-3 flex items-center gap-3 border-b">
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
@@ -985,10 +985,10 @@ export default function Review() {
                           </Badge>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs">
+                          <div className="text-xs">
                             <span className="font-bold mr-2">socialflow_auto</span>
-                            <span className="whitespace-pre-wrap">{caption}</span>
-                          </p>
+                            <div className="whitespace-pre-wrap">{caption}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -997,23 +997,37 @@ export default function Review() {
                   <TabsContent value="edit" className="flex-1 p-4 m-0 flex flex-col">
                     <Label
                       htmlFor="caption-editor"
-                      className="text-xs font-semibold mb-2 flex items-center gap-2"
+                      className="text-xs font-semibold mb-2 flex items-center justify-between"
                     >
-                      <Wand2 className="h-3 w-3" />
-                      Final Caption Editor
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="h-3 w-3" />
+                        Final Caption Editor
+                      </div>
+                      {activeCampaign?.safetyMaxLength && (
+                        <span className={`text-[10px] font-medium ${caption.length > activeCampaign.safetyMaxLength ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          Limit: {activeCampaign.safetyMaxLength}
+                        </span>
+                      )}
                     </Label>
                     <Textarea
                       id="caption-editor"
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
                       placeholder="The generated caption will appear here..."
-                      className="flex-1 min-h-[300px] text-sm font-sans leading-relaxed focus:ring-1 focus:ring-primary/30"
+                      className={`flex-1 min-h-[300px] text-sm font-sans leading-relaxed focus:ring-1 ${activeCampaign?.safetyMaxLength && caption.length > activeCampaign.safetyMaxLength ? 'border-destructive focus:ring-destructive/30' : 'focus:ring-primary/30'}`}
                       data-testid="input-caption"
                     />
                     <div className="mt-2 flex items-center justify-between">
-                      <p className="text-[10px] text-muted-foreground">
-                        {caption.length} characters • {caption.split(/\s+/).filter(Boolean).length} words
-                      </p>
+                      <div className="flex flex-col gap-1">
+                        <p className={`text-[10px] font-medium ${activeCampaign?.safetyMaxLength && caption.length > activeCampaign.safetyMaxLength ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {caption.length} characters • {caption.split(/\s+/).filter(Boolean).length} words
+                        </p>
+                        {activeCampaign?.safetyMaxLength && caption.length > activeCampaign.safetyMaxLength && (
+                          <p className="text-[9px] text-destructive font-bold animate-pulse">
+                            Warning: Caption exceeds campaign length limit!
+                          </p>
+                        )}
+                      </div>
                       <Button variant="link" size="sm" className="h-6 text-[10px] p-0" onClick={() => setCaption(currentPost?.generatedCaption || "")}>
                         Discard manual changes
                       </Button>
