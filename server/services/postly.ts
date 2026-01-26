@@ -39,6 +39,9 @@ export async function publishToPostly(
 
   const baseUrl = "https://openapi.postly.ai/v1";
   const platforms = campaign.targetPlatforms || [];
+
+  
+
   
   const payload: PostlyPublishPayload = {
     text: captionOverride || post.generatedCaption || "",
