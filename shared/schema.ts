@@ -18,6 +18,7 @@ export const campaigns = pgTable("campaigns", {
   imageKeywords: jsonb("image_keywords").$type<string[]>().default(sql`'[]'::jsonb`),
   imageProviders: jsonb("image_providers").$type<Array<{type: string, value: string}>>().default(sql`'[]'::jsonb`),
   targetPlatforms: jsonb("target_platforms").$type<string[]>().default(sql`'[]'::jsonb`),
+  accountIds: jsonb("account_ids").$type<string[]>().default(sql`'[]'::jsonb`),
   userId: text("user_id"),
   safetyForbiddenTerms: text("safety_forbidden_terms"),
   safetyMaxLength: integer("safety_max_length").default(2000),

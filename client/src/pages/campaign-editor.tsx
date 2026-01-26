@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2, ArrowLeft, Layers, Image as ImageIcon } from "lucide-react";
+import { Eye, EyeOff, Save, Globe, Key, ShieldAlert, Clock, Plus, Trash2, ArrowLeft, Layers, Image as ImageIcon, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation, useParams } from "wouter";
@@ -72,6 +72,7 @@ export default function CampaignEditor() {
     { type: "unsplash", value: "" }
   ]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [accountIds, setAccountIds] = useState<string[]>([""]);
   const [aiPrompt, setAiPrompt] = useState("");
   const [safetyForbiddenTerms, setSafetyForbiddenTerms] = useState("");
   const [safetyMaxLength, setSafetyMaxLength] = useState(2000);
@@ -103,6 +104,7 @@ export default function CampaignEditor() {
         ? campaign.imageProviders 
         : [{ type: "unsplash", value: "" }]);
       setSelectedPlatforms(campaign.targetPlatforms || []);
+      setAccountIds(campaign.accountIds && campaign.accountIds.length > 0 ? campaign.accountIds : [""]);
       setAiPrompt(campaign.aiPrompt || "");
       setSafetyForbiddenTerms(campaign.safetyForbiddenTerms || "");
       setSafetyMaxLength(campaign.safetyMaxLength || 2000);
@@ -151,6 +153,22 @@ export default function CampaignEditor() {
     setImageSources(newSources);
   };
 
+  const addAccountId = () => {
+    setAccountIds([...accountIds, ""]);
+  };
+
+  const removeAccountId = (index: number) => {
+    const newIds = [...accountIds];
+    newIds.splice(index, 1);
+    setAccountIds(newIds.length > 0 ? newIds : [""]);
+  };
+
+  const updateAccountId = (index: number, value: string) => {
+    const newIds = [...accountIds];
+    newIds[index] = value;
+    setAccountIds(newIds);
+  };
+
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms(prev => 
       prev.includes(platform) 
@@ -173,6 +191,8 @@ export default function CampaignEditor() {
     const validImageSources = imageSources.filter(source => source.value.trim() !== "");
     const cronExpression = scheduleToCron(scheduleFrequency, scheduleTime, scheduleDays);
 
+    const validAccountIds = accountIds.filter(id => id.trim() !== "");
+
     const campaignData = {
       name: name.trim(),
       topic: topic.trim(),
@@ -181,6 +201,7 @@ export default function CampaignEditor() {
       imageKeywords,
       imageProviders: validImageSources,
       targetPlatforms: selectedPlatforms,
+      accountIds: validAccountIds,
       aiPrompt: aiPrompt.trim() || null,
       safetyForbiddenTerms: safetyForbiddenTerms.trim() || null,
       safetyMaxLength,
@@ -498,6 +519,67 @@ export default function CampaignEditor() {
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-2">
                     System will default to dynamic AI search using global sources. Use these overrides only if specific keywords are required for this topic.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account IDs */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  <CardTitle>Social Media Accounts</CardTitle>
+                </div>
+                <CardDescription>
+                  Enter the account IDs to publish to. The first one is the default.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Account IDs</Label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 gap-1 text-xs" 
+                      onClick={addAccountId}
+                      data-testid="button-add-account"
+                    >
+                      <Plus className="h-3 w-3" /> Add Account
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {accountIds.map((id, index) => (
+                      <div key={index} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-2.5 text-xs font-mono text-muted-foreground">
+                            {index === 0 ? "Default" : `#${index + 1}`}
+                          </span>
+                          <Input 
+                            value={id}
+                            onChange={(e) => updateAccountId(index, e.target.value)}
+                            className="font-mono text-xs pl-16"
+                            placeholder="Enter account ID"
+                            data-testid={`input-account-id-${index}`}
+                          />
+                        </div>
+                        {accountIds.length > 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-destructive" 
+                            onClick={() => removeAccountId(index)}
+                            data-testid={`button-remove-account-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    These are the social media account IDs where posts will be published. Get your account IDs from your Postly dashboard.
                   </p>
                 </div>
               </CardContent>
