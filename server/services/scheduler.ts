@@ -85,13 +85,13 @@ export function stopScheduler(): void {
   console.log("[Scheduler] Stopped");
 }
 
-export async function runNow(action: "fetch" | "process" | "publish", campaignId?: number): Promise<any> {
+export async function runNow(action: "fetch" | "process" | "publish", campaignId?: number, userId?: string): Promise<any> {
   switch (action) {
     case "fetch":
       if (campaignId) {
-        return await processCampaignFeeds(campaignId);
+        return await processCampaignFeeds(campaignId, userId);
       } else {
-        await processAllActiveCampaigns();
+        await processAllActiveCampaigns(userId);
         return { message: "Fetched all active campaigns" };
       }
     
@@ -99,7 +99,7 @@ export async function runNow(action: "fetch" | "process" | "publish", campaignId
       if (campaignId) {
         return await processDraftPosts(campaignId);
       } else {
-        const campaigns = await storage.getActiveCampaigns();
+        const campaigns = await storage.getActiveCampaigns(userId);
         const results = [];
         for (const campaign of campaigns) {
           results.push({

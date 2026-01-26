@@ -13,12 +13,13 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   // ============================================
-  // Campaign Routes
+  // Campaign Routes (authenticated)
   // ============================================
   
-  app.get("/api/campaigns", async (req, res) => {
+  app.get("/api/campaigns", isAuthenticated, async (req: any, res) => {
     try {
-      const campaigns = await storage.getAllCampaigns();
+      const userId = req.user.claims.sub;
+      const campaigns = await storage.getAllCampaigns(userId);
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
@@ -26,14 +27,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/campaigns/:id", async (req, res) => {
+  app.get("/api/campaigns/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
       }
       
-      const campaign = await storage.getCampaign(id);
+      const campaign = await storage.getCampaign(id, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
@@ -45,13 +47,15 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/campaigns", async (req, res) => {
+  app.post("/api/campaigns", isAuthenticated, async (req: any, res) => {
     try {
-      const validatedData = insertCampaignSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const validatedData = insertCampaignSchema.parse({ ...req.body, userId });
       const campaign = await storage.createCampaign(validatedData);
       
       await storage.createLog({
         campaignId: campaign.id,
+        userId,
         level: "info",
         message: `Campaign "${campaign.name}" created`,
         metadata: { campaignId: campaign.id }
@@ -67,8 +71,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/campaigns/:id", async (req, res) => {
+  app.patch("/api/campaigns/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
@@ -77,13 +82,14 @@ export async function registerRoutes(
       const partialSchema = insertCampaignSchema.partial();
       const validatedData = partialSchema.parse(req.body);
       
-      const campaign = await storage.updateCampaign(id, validatedData);
+      const campaign = await storage.updateCampaign(id, validatedData, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
       
       await storage.createLog({
         campaignId: campaign.id,
+        userId,
         level: "info",
         message: `Campaign "${campaign.name}" updated`,
         metadata: { campaignId: campaign.id, updates: Object.keys(validatedData) }
@@ -99,24 +105,26 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/campaigns/:id", async (req, res) => {
+  app.delete("/api/campaigns/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
       }
       
-      const campaign = await storage.getCampaign(id);
+      const campaign = await storage.getCampaign(id, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
       
-      const deleted = await storage.deleteCampaign(id);
+      const deleted = await storage.deleteCampaign(id, userId);
       if (!deleted) {
         return res.status(500).json({ error: "Failed to delete campaign" });
       }
       
       await storage.createLog({
+        userId,
         level: "warning",
         message: `Campaign "${campaign.name}" deleted`,
         metadata: { campaignId: id }
@@ -130,11 +138,12 @@ export async function registerRoutes(
   });
 
   // ============================================
-  // Post Routes
+  // Post Routes (authenticated)
   // ============================================
   
-  app.get("/api/posts", async (req, res) => {
+  app.get("/api/posts", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
       const status = req.query.status as string | undefined;
       const includePostId = req.query.includePostId ? parseInt(req.query.includePostId as string) : undefined;
@@ -142,17 +151,17 @@ export async function registerRoutes(
       let posts;
       
       if (status === 'draft') {
-        posts = await storage.getDraftPosts(campaignId);
+        posts = await storage.getDraftPosts(campaignId, userId);
         if (includePostId && !posts.find(p => p.id === includePostId)) {
-          const extraPost = await storage.getPost(includePostId);
+          const extraPost = await storage.getPost(includePostId, userId);
           if (extraPost) posts.push(extraPost);
         }
       } else if (status === 'scheduled') {
-        posts = await storage.getScheduledPosts();
+        posts = await storage.getScheduledPosts(userId);
       } else if (campaignId) {
-        posts = await storage.getPostsByCampaign(campaignId);
+        posts = await storage.getPostsByCampaign(campaignId, 50, userId);
       } else {
-        posts = await storage.getDraftPosts();
+        posts = await storage.getDraftPosts(undefined, userId);
       }
       
       res.json(posts);
@@ -162,14 +171,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/posts/:id", async (req, res) => {
+  app.get("/api/posts/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
       
-      const post = await storage.getPost(id);
+      const post = await storage.getPost(id, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
@@ -181,14 +191,16 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts", async (req, res) => {
+  app.post("/api/posts", isAuthenticated, async (req: any, res) => {
     try {
-      const validatedData = insertPostSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const validatedData = insertPostSchema.parse({ ...req.body, userId });
       const post = await storage.createPost(validatedData);
       
       await storage.createLog({
         campaignId: post.campaignId,
         postId: post.id,
+        userId,
         level: "info",
         message: `Post created: "${post.sourceTitle}"`,
         metadata: { postId: post.id }
@@ -204,8 +216,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/posts/:id", async (req, res) => {
+  app.patch("/api/posts/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
@@ -224,7 +237,7 @@ export async function registerRoutes(
       
       const validatedData = partialSchema.parse(rawData);
       
-      const post = await storage.updatePost(id, validatedData);
+      const post = await storage.updatePost(id, validatedData, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
@@ -232,6 +245,7 @@ export async function registerRoutes(
       await storage.createLog({
         campaignId: post.campaignId,
         postId: post.id,
+        userId,
         level: "info",
         message: `Post updated: "${post.sourceTitle}"`,
         metadata: { postId: post.id, updates: Object.keys(validatedData) }
@@ -248,19 +262,20 @@ export async function registerRoutes(
   });
 
   // ============================================
-  // Log Routes
+  // Log Routes (authenticated)
   // ============================================
   
-  app.get("/api/logs", async (req, res) => {
+  app.get("/api/logs", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
       
       let logs;
       if (campaignId) {
-        logs = await storage.getLogsByCampaign(campaignId, limit);
+        logs = await storage.getLogsByCampaign(campaignId, limit, userId);
       } else {
-        logs = await storage.getAllLogs(limit);
+        logs = await storage.getAllLogs(limit, userId);
       }
       
       res.json(logs);
@@ -270,7 +285,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/logs", async (req, res) => {
+  app.post("/api/logs", isAuthenticated, async (req: any, res) => {
     try {
       const validatedData = insertLogSchema.parse(req.body);
       const log = await storage.createLog(validatedData);
@@ -285,17 +300,23 @@ export async function registerRoutes(
   });
 
   // ============================================
-  // RSS Routes
+  // RSS Routes (authenticated)
   // ============================================
   
-  app.post("/api/campaigns/:id/fetch", async (req, res) => {
+  app.post("/api/campaigns/:id/fetch", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
       }
 
-      const result = await processCampaignFeeds(id);
+      const campaign = await storage.getCampaign(id, userId);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
+      const result = await processCampaignFeeds(id, userId);
       res.json({
         success: true,
         message: `Fetched ${result.new} new articles from ${result.fetched} total`,
@@ -309,9 +330,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/fetch-all", async (req, res) => {
+  app.post("/api/fetch-all", isAuthenticated, async (req: any, res) => {
     try {
-      await processAllActiveCampaigns();
+      const userId = req.user.claims.sub;
+      await processAllActiveCampaigns(userId);
       res.json({ success: true, message: "Started fetching all active campaigns" });
     } catch (error) {
       console.error("Error fetching all campaigns:", error);
@@ -320,14 +342,20 @@ export async function registerRoutes(
   });
 
   // ============================================
-  // Pipeline Routes (AI Generation & Publishing)
+  // Pipeline Routes (AI Generation & Publishing) - authenticated
   // ============================================
 
-  app.post("/api/campaigns/:id/process", async (req, res) => {
+  app.post("/api/campaigns/:id/process", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
+      }
+
+      const campaign = await storage.getCampaign(id, userId);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
       }
 
       const result = await processDraftPosts(id);
@@ -344,25 +372,26 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts/:id/generate", async (req, res) => {
+  app.post("/api/posts/:id/generate", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
 
-      const post = await storage.getPost(id);
+      const post = await storage.getPost(id, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
 
-      const campaign = await storage.getCampaign(post.campaignId);
+      const campaign = await storage.getCampaign(post.campaignId, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
 
       await processNewPost(post, campaign);
-      const updatedPost = await storage.getPost(id);
+      const updatedPost = await storage.getPost(id, userId);
 
       res.json({
         success: true,
@@ -377,19 +406,20 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts/:id/publish", async (req, res) => {
+  app.post("/api/posts/:id/publish", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
 
-      const post = await storage.getPost(id);
+      const post = await storage.getPost(id, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
 
-      const campaign = await storage.getCampaign(post.campaignId);
+      const campaign = await storage.getCampaign(post.campaignId, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
@@ -397,7 +427,7 @@ export async function registerRoutes(
       const captionOverride = req.body.generatedCaption;
 
       await publishPost(post, campaign, captionOverride);
-      const updatedPost = await storage.getPost(id);
+      const updatedPost = await storage.getPost(id, userId);
 
       res.json({
         success: true,
@@ -412,8 +442,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts/:id/approve", async (req, res) => {
+  app.post("/api/posts/:id/approve", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
@@ -424,7 +455,7 @@ export async function registerRoutes(
       const post = await storage.updatePost(id, {
         status: scheduledFor ? "scheduled" : "approved",
         scheduledFor
-      });
+      }, userId);
 
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
@@ -433,6 +464,7 @@ export async function registerRoutes(
       await storage.createLog({
         campaignId: post.campaignId,
         postId: post.id,
+        userId,
         level: "info",
         message: scheduledFor 
           ? `Post approved and scheduled for ${scheduledFor.toISOString()}`
@@ -446,8 +478,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/posts/:id/reject", async (req, res) => {
+  app.post("/api/posts/:id/reject", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
@@ -458,7 +491,7 @@ export async function registerRoutes(
       const post = await storage.updatePost(id, {
         status: "failed",
         failureReason: reason
-      });
+      }, userId);
 
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
@@ -467,6 +500,7 @@ export async function registerRoutes(
       await storage.createLog({
         campaignId: post.campaignId,
         postId: post.id,
+        userId,
         level: "info",
         message: `Post rejected: ${reason}`,
       });
@@ -478,15 +512,16 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/run", async (req, res) => {
+  app.post("/api/run", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { action, campaignId } = req.body;
       
       if (!action || !["fetch", "process", "publish"].includes(action)) {
         return res.status(400).json({ error: "Invalid action. Must be: fetch, process, or publish" });
       }
 
-      const result = await runNow(action, campaignId);
+      const result = await runNow(action, campaignId, userId);
       res.json({ success: true, result });
     } catch (error) {
       console.error("Error running action:", error);
@@ -497,17 +532,18 @@ export async function registerRoutes(
   });
 
   // ============================================
-  // Dashboard Stats
+  // Dashboard Stats (authenticated)
   // ============================================
   
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", isAuthenticated, async (req: any, res) => {
     try {
-      const campaigns = await storage.getAllCampaigns();
+      const userId = req.user.claims.sub;
+      const campaigns = await storage.getAllCampaigns(userId);
       const activeCampaigns = campaigns.filter(c => c.isActive);
       
       const allPosts: any[] = [];
       for (const campaign of campaigns) {
-        const posts = await storage.getPostsByCampaign(campaign.id, 1000);
+        const posts = await storage.getPostsByCampaign(campaign.id, 1000, userId);
         allPosts.push(...posts);
       }
       
@@ -516,7 +552,7 @@ export async function registerRoutes(
       const posted = allPosts.filter(p => p.status === 'posted');
       const failed = allPosts.filter(p => p.status === 'failed');
       
-      const recentLogs = await storage.getAllLogs(50);
+      const recentLogs = await storage.getAllLogs(50, userId);
       
       res.json({
         totalCampaigns: campaigns.length,
@@ -642,20 +678,21 @@ export async function registerRoutes(
     }
   });
 
-  // Endpoint to search for images
-  app.post("/api/posts/:id/search-image", async (req, res) => {
+  // Endpoint to search for images (authenticated)
+  app.post("/api/posts/:id/search-image", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
 
-      const post = await storage.getPost(id);
+      const post = await storage.getPost(id, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
 
-      const campaign = await storage.getCampaign(post.campaignId);
+      const campaign = await storage.getCampaign(post.campaignId, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
       }
@@ -694,8 +731,8 @@ export async function registerRoutes(
 
       if (imageUrl) {
         console.log(`[ImageSearch] Found image for post ${id} (offset ${currentOffset}): ${imageUrl}`);
-        await storage.updatePost(id, { imageUrl, imageCredit });
-        const updatedPost = await storage.getPost(id);
+        await storage.updatePost(id, { imageUrl, imageCredit }, userId);
+        const updatedPost = await storage.getPost(id, userId);
         res.json({ success: true, post: updatedPost });
       } else {
         console.log(`[ImageSearch] No image found for post ${id} (offset ${currentOffset})`);
@@ -707,16 +744,17 @@ export async function registerRoutes(
     }
   });
 
-  // Endpoint to sync review prompt to campaign
-  app.put("/api/campaigns/:id/prompt", async (req, res) => {
+  // Endpoint to sync review prompt to campaign (authenticated)
+  app.put("/api/campaigns/:id/prompt", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid campaign ID" });
       }
       
       const { aiPrompt } = req.body;
-      const campaign = await storage.updateCampaign(id, { aiPrompt });
+      const campaign = await storage.updateCampaign(id, { aiPrompt }, userId);
       
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });

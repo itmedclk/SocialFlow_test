@@ -62,17 +62,17 @@ function extractImageFromContent(content: string): string | null {
   return imgMatch ? imgMatch[1] : null;
 }
 
-export async function isNewArticle(guid: string): Promise<boolean> {
-  const existingPost = await storage.getPostByGuid(guid);
+export async function isNewArticle(guid: string, userId?: string): Promise<boolean> {
+  const existingPost = await storage.getPostByGuid(guid, userId);
   return !existingPost;
 }
 
-export async function processCampaignFeeds(campaignId: number): Promise<{
+export async function processCampaignFeeds(campaignId: number, userId?: string): Promise<{
   fetched: number;
   new: number;
   errors: string[];
 }> {
-  const campaign = await storage.getCampaign(campaignId);
+  const campaign = await storage.getCampaign(campaignId, userId);
   
   if (!campaign) {
     throw new Error(`Campaign ${campaignId} not found`);
@@ -96,11 +96,12 @@ export async function processCampaignFeeds(campaignId: number): Promise<{
       result.fetched += limitedArticles.length;
 
       for (const article of limitedArticles) {
-        const isNew = await isNewArticle(article.guid);
+        const isNew = await isNewArticle(article.guid, userId);
         
         if (isNew) {
           const postData: InsertPost = {
             campaignId,
+            userId: userId || campaign.userId,
             sourceTitle: article.title,
             sourceUrl: article.link,
             sourceGuid: article.guid,
@@ -123,12 +124,12 @@ export async function processCampaignFeeds(campaignId: number): Promise<{
   return result;
 }
 
-export async function processAllActiveCampaigns(): Promise<void> {
-  const campaigns = await storage.getActiveCampaigns();
+export async function processAllActiveCampaigns(userId?: string): Promise<void> {
+  const campaigns = await storage.getActiveCampaigns(userId);
   
   for (const campaign of campaigns) {
     try {
-      await processCampaignFeeds(campaign.id);
+      await processCampaignFeeds(campaign.id, userId);
     } catch (error) {
       console.error(`Error processing campaign ${campaign.id}:`, error);
     }
