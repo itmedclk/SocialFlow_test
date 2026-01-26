@@ -64,11 +64,75 @@ export default function Review() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
   const [promptModified, setPromptModified] = useState(false);
   const [savingPrompt, setSavingPrompt] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [userModel, setUserModel] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [searchingImage, setSearchingImage] = useState(false);
+  const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
+
+  const fetchGlobalSettings = async () => {
+    try {
+      const response = await fetch("/api/settings", { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalSettings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching global settings:", error);
+    }
+  };
+
+  const fetchCampaigns = async () => {
+    try {
+      const response = await fetch("/api/campaigns");
+      if (!response.ok) throw new Error("Failed to fetch campaigns");
+      const data = await response.json();
+      setCampaigns(data);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+    }
+  };
+
+  const fetchPosts = async (campaignId?: number) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get("postId");
+      
+      const url = campaignId
+        ? `/api/posts?campaignId=${campaignId}&status=draft${postId ? `&includePostId=${postId}` : ""}`
+        : `/api/posts?status=draft${postId ? `&includePostId=${postId}` : ""}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch posts");
+      const data = await response.json();
+      setPosts(data);
+      setSelectedPostIndex(0);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setUserModel(data.aiModel);
+      }
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+    }
+  };
 
   useEffect(() => {
     fetchCampaigns();
     fetchPosts();
     fetchGlobalSettings();
+    fetchUserSettings();
   }, []);
 
   useEffect(() => {
@@ -113,7 +177,10 @@ export default function Review() {
     setPromptModified(false);
   }, [selectedCampaign, campaigns, globalSettings]);
 
-  // Sync prompt when current post changes if it's from a different campaign
+  const currentPost = posts[selectedPostIndex];
+  const activeCampaign =
+    campaigns.find((c) => c.id.toString() === selectedCampaign) || (selectedCampaign === "all" ? null : campaigns[0]);
+
   useEffect(() => {
     if (currentPost && selectedCampaign === "all") {
       const postCampaign = campaigns.find(c => c.id === currentPost.campaignId);
@@ -124,29 +191,6 @@ export default function Review() {
       }
     }
   }, [currentPost, selectedCampaign, campaigns, globalSettings]);
-
-  const fetchGlobalSettings = async () => {
-    try {
-      const response = await fetch("/api/settings", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setGlobalSettings(data);
-      }
-    } catch (error) {
-      console.error("Error fetching global settings:", error);
-    }
-  };
-
-  const fetchCampaigns = async () => {
-    try {
-      const response = await fetch("/api/campaigns");
-      if (!response.ok) throw new Error("Failed to fetch campaigns");
-      const data = await response.json();
-      setCampaigns(data);
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
-    }
-  };
 
   const handleSavePrompt = async () => {
     if (!activeCampaign) {
@@ -200,31 +244,6 @@ export default function Review() {
       }
     }
   }, [posts]);
-
-  const fetchPosts = async (campaignId?: number) => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams(window.location.search);
-      const postId = params.get("postId");
-      
-      const url = campaignId
-        ? `/api/posts?campaignId=${campaignId}&status=draft${postId ? `&includePostId=${postId}` : ""}`
-        : `/api/posts?status=draft${postId ? `&includePostId=${postId}` : ""}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch posts");
-      const data = await response.json();
-      setPosts(data);
-      setSelectedPostIndex(0);
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const currentPost = posts[selectedPostIndex];
-  const activeCampaign =
-    campaigns.find((c) => c.id.toString() === selectedCampaign) || (selectedCampaign === "all" ? null : campaigns[0]);
 
   const handleFetchNew = async () => {
     const campaignToUse = activeCampaign || campaigns[0];
@@ -289,30 +308,6 @@ export default function Review() {
     }
   };
 
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [scheduleTime, setScheduleTime] = useState("");
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [userModel, setUserModel] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchCampaigns();
-    fetchPosts();
-    fetchGlobalSettings();
-    fetchUserSettings();
-  }, []);
-
-  const fetchUserSettings = async () => {
-    try {
-      const response = await fetch("/api/settings");
-      if (response.ok) {
-        const data = await response.json();
-        setUserModel(data.aiModel);
-      }
-    } catch (error) {
-      console.error("Error fetching user settings:", error);
-    }
-  };
-
   const handleScheduleConfirm = async () => {
     if (!currentPost) return;
 
@@ -349,7 +344,7 @@ export default function Review() {
           campaignId: currentPost.campaignId,
           postId: currentPost.id,
           level: "info",
-          message: `Post "${currentPost.sourceTitle}" scheduled for ${scheduledFor.toLocaleString()}`,
+          message: `Post \"${currentPost.sourceTitle}\" scheduled for ${scheduledFor.toLocaleString()}`,
           metadata: { scheduledFor: scheduledFor.toISOString() }
         }),
       });
@@ -442,11 +437,6 @@ export default function Review() {
       setGenerating(false);
     }
   };
-
-  const [generating, setGenerating] = useState(false);
-  const [searchingImage, setSearchingImage] = useState(false);
-
-  const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
 
   const handleSearchImage = async () => {
     if (!currentPost) return;
@@ -790,209 +780,262 @@ export default function Review() {
                 </div>
                 {currentPost?.failureReason && (
                   <div className="mt-4 p-3 border border-destructive/20 bg-destructive/5 rounded-md">
-                    <p className="text-xs font-bold text-destructive flex items-center gap-1 mb-1">
-                      <X className="h-3 w-3" />
-                      Post Failed to Publish
-                    </p>
-                    <p className="text-xs text-destructive/80 italic">
-                      {currentPost.failureReason}
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleReprocess}
-                      disabled={generating}
-                      className="mt-2 h-7 text-[10px] gap-1 border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
-                      Re-process Post
-                    </Button>
+                    <p className="text-xs font-semibold text-destructive mb-1 uppercase tracking-wider">Publication Error</p>
+                    <p className="text-sm text-destructive font-medium">{currentPost.failureReason}</p>
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="bg-muted/20 border-t py-2">
-                {currentPost?.sourceUrl && (
+              <CardFooter className="bg-muted/30 py-2 border-t flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-8"
+                  asChild
+                >
                   <a
-                    href={currentPost.sourceUrl}
+                    href={currentPost?.sourceUrl || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full"
                   >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full gap-2 h-8 text-xs"
-                    >
-                      View Original Source <ExternalLink className="h-3 w-3" />
-                    </Button>
+                    View Original <ExternalLink className="h-3 w-3 ml-1" />
                   </a>
-                )}
+                </Button>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader className="pb-3 py-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                    Generation Controls
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    AI Generation Controls
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px] h-5 bg-muted/50 text-muted-foreground border-muted">
-                      AI Model: {currentPost?.aiModel || userModel || "Default"}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-5 bg-primary/5 text-primary border-primary/20"
-                    >
-                      Config: {activeCampaign?.topic || "Default"}
-                    </Badge>
-                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-4 py-4">
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs flex items-center gap-1.5">
-                      <Wand2 className="h-3 w-3 text-primary" />
-                      System Prompt
+                    <Label
+                      htmlFor="prompt"
+                      className="text-sm font-medium flex items-center gap-2"
+                    >
+                      AI Prompt Instructions
+                      <Badge variant="outline" className="text-[10px] font-normal py-0">
+                        {selectedCampaign === 'all' ? 'Auto-sync active' : 'Campaign specific'}
+                      </Badge>
                     </Label>
-                    {promptModified && selectedCampaign !== "all" && (
+                    <div className="flex gap-2">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-6 text-xs gap-1"
+                        className="h-7 text-xs px-2"
                         onClick={handleSavePrompt}
-                        disabled={savingPrompt}
+                        disabled={!promptModified || savingPrompt || !activeCampaign}
                         data-testid="button-save-prompt"
                       >
-                        <Save className="h-3 w-3" />
-                        {savingPrompt ? "Saving..." : "Save to Campaign"}
+                        {savingPrompt ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                        Save to Campaign
                       </Button>
-                    )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs px-2"
+                        onClick={() => {
+                          const defaultPrompt = "You are an expert social media manager. Generate an engaging Instagram caption for the following news article. Include relevant hashtags.";
+                          setPrompt(defaultPrompt);
+                          setPromptModified(true);
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
+                    id="prompt"
                     value={prompt}
                     onChange={(e) => {
                       setPrompt(e.target.value);
                       setPromptModified(true);
                     }}
-                    className="min-h-[80px] text-xs leading-relaxed resize-y font-mono bg-muted/20"
-                    data-testid="textarea-prompt"
+                    placeholder="Enter instructions for AI content generation..."
+                    className="min-h-[120px] text-sm resize-none bg-muted/20 focus:bg-background transition-colors"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Prompt hierarchy: Review → Campaign → Global Settings
+                  <p className="text-[11px] text-muted-foreground">
+                    Modifying this prompt will affect how the AI generates the caption for this specific post and any future posts if saved to the campaign.
                   </p>
                 </div>
 
-                <Button
-                  variant="secondary"
-                  className="w-full gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
-                  onClick={handleRegenerate}
-                  disabled={!currentPost || generating}
-                  data-testid="button-regenerate"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${generating ? "animate-spin" : ""}`}
-                  />
-                  {generating ? "Generating..." : "Generate Caption with AI"}
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
+                    onClick={handleSearchImage}
+                    disabled={searchingImage || !currentPost}
+                    data-testid="button-search-image"
+                  >
+                    {searchingImage ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-4 w-4" />
+                    )}
+                    Find Better Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
+                    onClick={handleRegenerate}
+                    disabled={generating || !currentPost}
+                    data-testid="button-regenerate"
+                  >
+                    {generating ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Regenerate AI Content
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column: Preview & Edit */}
-          <div className="space-y-6 flex flex-col h-full">
-            <Tabs defaultValue="caption" className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList>
-                  <TabsTrigger value="caption" className="gap-2">
-                    <MessageSquare className="h-4 w-4" /> Caption
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="gap-2">
-                    <ImageIcon className="h-4 w-4" /> Image
-                  </TabsTrigger>
-                </TabsList>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  Draft Content
+          {/* Right Column: Preview & Editor */}
+          <div className="flex flex-col h-full overflow-hidden">
+            <Card className="flex-1 flex flex-col overflow-hidden border-primary/20 shadow-lg">
+              <CardHeader className="py-3 bg-muted/30 border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    Instagram Preview
+                  </CardTitle>
+                  <Badge variant="outline" className="font-mono text-[10px] bg-background">
+                    Preview Mode
+                  </Badge>
                 </div>
-              </div>
-
-              <TabsContent value="caption" className="flex-1 mt-0">
-                <Card className="h-full flex flex-col">
-                  <CardContent className="flex-1 p-0">
-                    <Textarea
-                      value={caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      placeholder="Enter or generate a caption for this post..."
-                      className="h-full w-full resize-none border-0 focus-visible:ring-0 p-6 text-base leading-relaxed font-sans"
-                      data-testid="textarea-caption"
-                    />
-                  </CardContent>
-                  <CardFooter className="border-t bg-muted/10 py-2 px-4 flex justify-between items-center text-xs text-muted-foreground">
-                    <span>{caption.length} / 2200 characters</span>
-                    <span>
-                      {(caption.match(/#\w+/g) || []).length} hashtags detected
-                    </span>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="image" className="flex-1 mt-0">
-                <Card className="h-full overflow-hidden flex flex-col">
-                  <div className="flex-1 bg-muted/30 relative group flex items-center justify-center min-h-[200px]">
-                    {currentPost?.imageUrl ? (
-                      <img
-                        src={currentPost.imageUrl.replace(/&amp;/g, '&')}
-                        alt="Preview"
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center text-muted-foreground p-4">
-                        <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>No image available</p>
-                        <p className="text-xs mt-1">
-                          Click "Search Image" to find one
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <CardFooter className="border-t p-4 bg-muted/10">
-                    <div className="w-full space-y-3">
-                      <Button
-                        variant="secondary"
-                        className="w-full gap-2"
-                        onClick={handleSearchImage}
-                        disabled={!currentPost || searchingImage}
-                        data-testid="button-search-image"
+              </CardHeader>
+              <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
+                <Tabs defaultValue="preview" className="flex-1 flex flex-col overflow-hidden">
+                  <div className="px-4 pt-2 border-b bg-muted/10">
+                    <TabsList className="h-8 bg-transparent gap-4">
+                      <TabsTrigger
+                        value="preview"
+                        className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-0 h-8 text-xs font-semibold"
                       >
-                        <Search className={`h-4 w-4 ${searchingImage ? "animate-pulse" : ""}`} />
-                        {searchingImage ? "Searching..." : "Search Image"}
-                      </Button>
-                      <div className="flex justify-between text-xs">
-                        <span className="font-medium">Image Credit</span>
-                        <span className="text-muted-foreground truncate ml-2">
-                          {currentPost?.imageCredit || "Not specified"}
-                        </span>
+                        Visual Preview
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="edit"
+                        className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-0 h-8 text-xs font-semibold"
+                      >
+                        Edit Caption
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent
+                    value="preview"
+                    className="flex-1 overflow-y-auto p-4 m-0 bg-slate-50 dark:bg-slate-900/50"
+                  >
+                    {/* Mock Instagram Post */}
+                    <div className="max-w-[400px] mx-auto bg-card border rounded-xl overflow-hidden shadow-sm">
+                      <div className="p-3 flex items-center gap-3 border-b">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                          SF
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold leading-none">
+                            SocialFlow Auto
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {activeCampaign?.name || "Draft Post"}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+
+                      <div className="aspect-square bg-muted relative group">
+                        {currentPost?.imageUrl ? (
+                          <img
+                            src={currentPost.imageUrl}
+                            alt="Post content"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                            <ImageIcon className="h-10 w-10 opacity-20" />
+                            <p className="text-xs">No image selected</p>
+                          </div>
+                        )}
+                        {currentPost?.imageCredit && (
+                          <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-[8px] text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            {currentPost.imageCredit}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-3 space-y-2">
+                        <div className="flex gap-3">
+                          <MessageSquare className="h-5 w-5" />
+                          <Send className="h-5 w-5" />
+                          <div className="flex-1" />
+                          <Badge variant="outline" className="text-[9px] font-mono py-0 h-4 border-primary/20 text-primary">
+                            {currentPost?.aiModel || userModel || "Default Model"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs">
+                            <span className="font-bold mr-2">socialflow_auto</span>
+                            <span className="whitespace-pre-wrap">{caption}</span>
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                  </TabsContent>
+
+                  <TabsContent value="edit" className="flex-1 p-4 m-0 flex flex-col">
+                    <Label
+                      htmlFor="caption-editor"
+                      className="text-xs font-semibold mb-2 flex items-center gap-2"
+                    >
+                      <Wand2 className="h-3 w-3" />
+                      Final Caption Editor
+                    </Label>
+                    <Textarea
+                      id="caption-editor"
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      placeholder="The generated caption will appear here..."
+                      className="flex-1 min-h-[300px] text-sm font-sans leading-relaxed focus:ring-1 focus:ring-primary/30"
+                      data-testid="input-caption"
+                    />
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-[10px] text-muted-foreground">
+                        {caption.length} characters • {caption.split(/\s+/).filter(Boolean).length} words
+                      </p>
+                      <Button variant="link" size="sm" className="h-6 text-[10px] p-0" onClick={() => setCaption(currentPost?.generatedCaption || "")}>
+                        Discard manual changes
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
+
       {/* Schedule Dialog */}
-      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+      <Dialog
+        open={isScheduleDialogOpen}
+        onOpenChange={setIsScheduleDialogOpen}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Schedule Post</DialogTitle>
             <DialogDescription>
-              Choose a date and time to publish this post.
+              Choose when you want this post to be published. All times are in 24-hour format.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1003,31 +1046,32 @@ export default function Review() {
               <Input
                 id="date"
                 type="date"
+                className="col-span-3"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="time" className="text-right">
-                Time
+                Time (24h)
               </Label>
               <Input
                 id="time"
                 type="time"
+                className="col-span-3"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
-                className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsScheduleDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleScheduleConfirm}>
-              Confirm Schedule
-            </Button>
+            <Button onClick={handleScheduleConfirm}>Confirm Schedule</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
