@@ -2,27 +2,19 @@ import Parser from "rss-parser";
 import { storage } from "../storage";
 import { Campaign, campaigns, type InsertPost } from "@shared/schema";
 import { processNewPost } from "./pipeline";
+import { CronExpressionParser } from "cron-parser";
 
 function getNextScheduledTime(campaign: Campaign): Date | null {
   if (!campaign.scheduleCron) return null;
 
-  const parts = campaign.scheduleCron.split(" ");
-  if (parts.length < 2) return null;
-  
-  const minute = parseInt(parts[0], 10);
-  const hour = parseInt(parts[1], 10);
-  
-  if (isNaN(minute) || isNaN(hour)) return null;
-
-  const now = new Date();
-  const next = new Date();
-  next.setHours(hour, minute, 0, 0);
-
-  if (next <= now) {
-    next.setDate(next.getDate() + 1);
+  try {
+    const expression = CronExpressionParser.parse(campaign.scheduleCron);
+    const next = expression.next();
+    return next.toDate();
+  } catch (error) {
+    console.error(`[RSS] Failed to parse cron expression: ${campaign.scheduleCron}`, error);
+    return null;
   }
-
-  return next;
 }
 
 const parser = new Parser({
@@ -145,18 +137,29 @@ export async function processCampaignFeeds(campaignId: number, userId?: string):
               // Calculate next scheduled time based on campaign cron
               const scheduledFor = getNextScheduledTime(campaign);
               
-              await storage.updatePost(newPost.id, {
-                status: "scheduled",
-                scheduledFor,
-              });
+              if (scheduledFor) {
+                await storage.updatePost(newPost.id, {
+                  status: "scheduled",
+                  scheduledFor,
+                });
 
-              await storage.createLog({
-                campaignId,
-                postId: newPost.id,
-                userId: userId || campaign.userId,
-                level: "info",
-                message: `Post auto-processed and scheduled for ${scheduledFor?.toISOString() || "next available slot"}`,
-              });
+                await storage.createLog({
+                  campaignId,
+                  postId: newPost.id,
+                  userId: userId || campaign.userId,
+                  level: "info",
+                  message: `Post auto-processed and scheduled for ${scheduledFor.toISOString()}`,
+                });
+              } else {
+                // No valid schedule, leave as draft with caption generated
+                await storage.createLog({
+                  campaignId,
+                  postId: newPost.id,
+                  userId: userId || campaign.userId,
+                  level: "warning",
+                  message: "Post processed but no valid schedule found - left as draft for manual scheduling",
+                });
+              }
             } catch (error) {
               console.error(`[RSS] Auto-process failed for post ${newPost.id}:`, error);
             }

@@ -78,6 +78,7 @@ export default function CampaignEditor() {
   const [safetyForbiddenTerms, setSafetyForbiddenTerms] = useState("");
   const [safetyMaxLength, setSafetyMaxLength] = useState(2000);
   const [isActive, setIsActive] = useState(true);
+  const [autoPublish, setAutoPublish] = useState(false);
   
   const { toast } = useToast();
 
@@ -111,6 +112,7 @@ export default function CampaignEditor() {
       setSafetyForbiddenTerms(campaign.safetyForbiddenTerms || "");
       setSafetyMaxLength(campaign.safetyMaxLength || 2000);
       setIsActive(campaign.isActive ?? true);
+      setAutoPublish(campaign.autoPublish ?? false);
     } catch (error) {
       console.error('Error fetching campaign:', error);
       toast({
@@ -191,6 +193,7 @@ export default function CampaignEditor() {
       safetyForbiddenTerms: safetyForbiddenTerms.trim() || null,
       safetyMaxLength,
       isActive,
+      autoPublish,
     };
 
     try {
@@ -601,6 +604,22 @@ export default function CampaignEditor() {
                     onCheckedChange={setIsActive}
                     data-testid="switch-is-active"
                   />
+                </div>
+                <Separator />
+                <div className="space-y-2 px-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="cursor-pointer">Automatic</Label>
+                    <Switch 
+                      checked={autoPublish} 
+                      onCheckedChange={setAutoPublish}
+                      data-testid="switch-auto-publish"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {autoPublish 
+                      ? "New articles will be automatically processed and scheduled" 
+                      : "New articles need manual review before posting"}
+                  </p>
                 </div>
               </CardContent>
             </Card>
