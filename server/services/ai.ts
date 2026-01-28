@@ -94,11 +94,16 @@ async function fetchFullContent(url: string): Promise<string | null> {
   }
 }
 
+export interface CaptionResult {
+  caption: string;
+  imageSearchPhrase: string;
+}
+
 export async function generateCaption(
   post: Post,
   campaign: Campaign,
   overridePrompt?: string,
-): Promise<string> {
+): Promise<CaptionResult> {
   const config = await getAIConfig(campaign.userId);
 
   if (!config.apiKey) {
@@ -139,10 +144,31 @@ export async function generateCaption(
     }
 
     const data: ChatCompletionResponse = await response.json();
-    let caption = data.choices[0]?.message?.content?.trim();
+    const rawContent = data.choices[0]?.message?.content?.trim();
 
-    if (!caption) {
+    if (!rawContent) {
       throw new Error("AI returned empty response");
+    }
+
+    // Parse JSON response
+    let caption: string;
+    let imageSearchPhrase: string = "";
+
+    try {
+      // Try to extract JSON from the response (may be wrapped in markdown code blocks)
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        caption = parsed.caption || rawContent;
+        imageSearchPhrase = parsed.imageSearchPhrase || "";
+      } else {
+        // Fallback: treat entire response as caption
+        caption = rawContent;
+      }
+    } catch (parseError) {
+      // If JSON parsing fails, use raw content as caption
+      console.warn("[AI] Failed to parse JSON response, using raw content as caption");
+      caption = rawContent;
     }
 
     // Append article link at the end of the post if not already present
@@ -156,10 +182,10 @@ export async function generateCaption(
       userId: campaign.userId,
       level: "info",
       message: `Caption generated successfully`,
-      metadata: { model: config.model, captionLength: caption.length },
+      metadata: { model: config.model, captionLength: caption.length, imageSearchPhrase },
     });
 
-    return caption;
+    return { caption, imageSearchPhrase };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -200,6 +226,15 @@ IMPORTANT: Never use "Thread x/x" or numbered thread formats in the output. Crea
   if (campaign.targetPlatforms && campaign.targetPlatforms.length > 0) {
     prompt += `\n\nTarget platforms: ${campaign.targetPlatforms.join(", ")}. Optimize the content for these platforms.`;
   }
+
+  // Add instruction for image search phrase
+  prompt += `\n\nIMPORTANT: You must respond in the following JSON format:
+{
+  "caption": "Your social media caption here",
+  "imageSearchPhrase": "2-4 word phrase for stock photo search"
+}
+
+The imageSearchPhrase should be a short, descriptive phrase (2-4 words) that would work well for searching stock photos. Focus on the main visual concept or subject of the article. Examples: "business meeting", "nature landscape", "technology innovation", "healthy food". Do NOT include the imageSearchPhrase text in the caption itself.`;
 
   return prompt;
 }

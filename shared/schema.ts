@@ -53,6 +53,7 @@ export const posts = pgTable("posts", {
   generatedCaption: text("generated_caption"),
   imageUrl: text("image_url"),
   imageCredit: text("image_credit"),
+  imageSearchPhrase: text("image_search_phrase"),
   status: text("status").$type<'draft' | 'approved' | 'scheduled' | 'posted' | 'failed'>().notNull().default('draft'),
   scheduledFor: timestamp("scheduled_for"),
   postedAt: timestamp("posted_at"),

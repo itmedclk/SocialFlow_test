@@ -10,13 +10,16 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
   try {
     const safetyConfig = getSafetyConfigFromCampaign(campaign);
     let caption: string | null = null;
+    let imageSearchPhrase: string = "";
     let safetyResult: { isValid: boolean; issues: string[] } = { isValid: false, issues: [] };
     
     const settings = campaign.userId ? await storage.getUserSettings(campaign.userId) : undefined;
     const modelName = settings?.aiModel || process.env.AI_MODEL || "deepseek/deepseek-v3.2";
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      caption = await generateCaption(post, campaign);
+      const result = await generateCaption(post, campaign);
+      caption = result.caption;
+      imageSearchPhrase = result.imageSearchPhrase;
       safetyResult = validateContent(caption, safetyConfig);
       
       if (safetyResult.isValid) {
@@ -56,7 +59,10 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
         ? campaign.imageProviders
         : [{ type: "pexels", value: "" }, { type: "unsplash", value: "" }];
       
-      const keywords = getImageKeywordsFromCampaign(campaign, post.sourceTitle);
+      // Use AI-generated image search phrase if available, otherwise fall back to campaign keywords + title
+      const keywords = imageSearchPhrase 
+        ? [imageSearchPhrase, ...(campaign.imageKeywords || [])]
+        : getImageKeywordsFromCampaign(campaign, post.sourceTitle);
       
       let imageAttempts = 0;
       while (!imageUrl && imageAttempts < MAX_RETRIES) {
@@ -82,6 +88,7 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
       generatedCaption: caption,
       imageUrl: imageUrl || null,
       imageCredit: imageCredit || null,
+      imageSearchPhrase: imageSearchPhrase || null,
       status: "draft",
       aiModel: modelName,
     });

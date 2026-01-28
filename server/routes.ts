@@ -810,10 +810,11 @@ export async function registerRoutes(
                 { type: "unsplash", value: "" },
               ];
 
-          const keywords = getImageKeywordsFromCampaign(
-            campaign,
-            post.sourceTitle,
-          );
+          // Use AI-generated image search phrase if available, otherwise fall back to campaign keywords + title
+          const keywords = post.imageSearchPhrase 
+            ? [post.imageSearchPhrase, ...(campaign.imageKeywords || [])]
+            : getImageKeywordsFromCampaign(campaign, post.sourceTitle);
+          
           // Pass offset to searchImage
           const userSettings = await storage.getUserSettings(userId);
           const imageResult = await searchImage(
