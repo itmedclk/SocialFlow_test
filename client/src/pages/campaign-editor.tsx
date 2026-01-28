@@ -552,16 +552,16 @@ export default function CampaignEditor() {
                 
                 {useSpecificAccount && (
                   <div className="space-y-2 pt-2 border-t">
-                    <Label>Specific Account ID</Label>
+                    <Label>Specific Account ID(s)</Label>
                     <Input 
                       value={specificAccountId}
                       onChange={(e) => setSpecificAccountId(e.target.value)}
                       className="font-mono text-sm"
-                      placeholder="Enter the account ID"
+                      placeholder="e.g., 123456789 or 123456789, 987654321"
                       data-testid="input-specific-account-id"
                     />
                     <p className="text-[10px] text-muted-foreground">
-                      Get your account ID from your Postly dashboard.
+                      Get your account ID from your Postly dashboard. To post to multiple accounts, separate IDs with commas.
                     </p>
                   </div>
                 )}

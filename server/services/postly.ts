@@ -101,13 +101,17 @@ export async function publishToPostly(
       throw new Error(data.error || "Postly returned unsuccessful response");
     }
 
+    const publishTarget = campaign.useSpecificAccount && campaign.specificAccountId 
+      ? `account(s): ${campaign.specificAccountId}`
+      : platforms.join(", ");
+
     await storage.createLog({
       campaignId: campaign.id,
       postId: post.id,
       userId: campaign.userId,
       level: "info",
-      message: `Post published successfully to ${platforms.join(", ")}`,
-      metadata: { postlyId: data.post_id, platforms },
+      message: `Post published successfully to ${publishTarget}`,
+      metadata: { postlyId: data.post_id, platforms, accountIds: targetPlatforms },
     });
 
     return { success: true };
