@@ -6,7 +6,7 @@ import type { Post, Campaign } from "@shared/schema";
 
 const MAX_RETRIES = 3;
 
-export async function processNewPost(post: Post, campaign: Campaign): Promise<void> {
+export async function processNewPost(post: Post, campaign: Campaign, overridePrompt?: string): Promise<void> {
   try {
     const safetyConfig = getSafetyConfigFromCampaign(campaign);
     let caption: string | null = null;
@@ -17,7 +17,7 @@ export async function processNewPost(post: Post, campaign: Campaign): Promise<vo
     const modelName = settings?.aiModel || process.env.AI_MODEL || "deepseek/deepseek-v3.2";
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      const result = await generateCaption(post, campaign);
+      const result = await generateCaption(post, campaign, overridePrompt);
       caption = result.caption;
       imageSearchPhrase = result.imageSearchPhrase;
       safetyResult = validateContent(caption, safetyConfig);

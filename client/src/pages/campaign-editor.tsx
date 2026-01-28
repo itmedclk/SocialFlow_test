@@ -310,7 +310,17 @@ export default function CampaignEditor() {
                     <select 
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       value={scheduleFrequency}
-                      onChange={(e) => setScheduleFrequency(e.target.value as ScheduleFrequency)}
+                      onChange={(e) => {
+                        const newFrequency = e.target.value as ScheduleFrequency;
+                        setScheduleFrequency(newFrequency);
+                        // Reset time to appropriate default when switching frequencies
+                        if (newFrequency === "hourly") {
+                          setScheduleTime("01:00"); // Default to every 1 hour
+                        } else if (scheduleTime.split(":")[0] === "01" || scheduleTime.split(":")[0] === "02" || scheduleTime.split(":")[0] === "03" || scheduleTime.split(":")[0] === "04" || scheduleTime.split(":")[0] === "06" || scheduleTime.split(":")[0] === "08" || scheduleTime.split(":")[0] === "12") {
+                          // If coming from hourly with small hours, reset to 9 AM
+                          setScheduleTime("09:00");
+                        }
+                      }}
                       data-testid="select-frequency"
                     >
                       <option value="hourly">Every X Hours</option>
