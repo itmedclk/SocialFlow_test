@@ -86,7 +86,7 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   // Replit production detection
-  if (!process.env.REPLIT_DEV_DOMAIN) {
+  if (process.env.REPLIT_DEPLOYMENT === "true") {
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");

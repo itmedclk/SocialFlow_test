@@ -6,7 +6,8 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(publicDir));
 
-  app.get("*", (_req, res) => {
+  // Express 5 catch-all (regex only)
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(publicDir, "index.html"));
   });
 }
