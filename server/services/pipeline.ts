@@ -2,9 +2,23 @@ import { storage } from "../storage";
 import { generateCaption, validateContent, getSafetyConfigFromCampaign } from "./ai";
 import { searchImage, extractOgImage, getImageKeywordsFromCampaign } from "./images";
 import { publishToPostly } from "./postly";
+import { CronExpressionParser } from "cron-parser";
 import type { Post, Campaign } from "@shared/schema";
 
 const MAX_RETRIES = 3;
+
+function getNextScheduledTime(campaign: Campaign): Date | null {
+  if (!campaign.scheduleCron) return null;
+
+  try {
+    const expression = CronExpressionParser.parse(campaign.scheduleCron);
+    const next = expression.next();
+    return next.toDate();
+  } catch (error) {
+    console.error(`[Pipeline] Failed to parse cron expression: ${campaign.scheduleCron}`, error);
+    return null;
+  }
+}
 
 export async function processNewPost(post: Post, campaign: Campaign, overridePrompt?: string): Promise<void> {
   try {
@@ -84,10 +98,17 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
       }
     }
 
-    // If auto-publish is enabled, set post to scheduled for immediate publishing
+    // If auto-publish is enabled, calculate next scheduled time from campaign cron
     // Otherwise, set to draft for manual review
-    const newStatus = campaign.autoPublish ? "scheduled" : "draft";
-    const scheduledFor = campaign.autoPublish ? new Date() : null;
+    let newStatus: "draft" | "scheduled" = "draft";
+    let scheduledFor: Date | null = null;
+
+    if (campaign.autoPublish) {
+      scheduledFor = getNextScheduledTime(campaign);
+      if (scheduledFor) {
+        newStatus = "scheduled";
+      }
+    }
 
     await storage.updatePost(post.id, {
       generatedCaption: caption,
@@ -99,13 +120,21 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
       aiModel: modelName,
     });
 
-    if (campaign.autoPublish) {
+    if (campaign.autoPublish && scheduledFor) {
       await storage.createLog({
         campaignId: campaign.id,
         postId: post.id,
         userId: campaign.userId,
         level: "info",
-        message: "Post auto-approved and scheduled for immediate publishing",
+        message: `Post auto-approved and scheduled for ${scheduledFor.toISOString()}`,
+      });
+    } else if (campaign.autoPublish && !scheduledFor) {
+      await storage.createLog({
+        campaignId: campaign.id,
+        postId: post.id,
+        userId: campaign.userId,
+        level: "warning",
+        message: "Auto-publish enabled but no valid schedule found - left as draft for manual scheduling",
       });
     }
 
