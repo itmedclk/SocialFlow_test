@@ -24,11 +24,6 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-(async () => {
-  await setupAuth(app);
-  registerAuthRoutes(app);
-})();
-
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -67,6 +62,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Set up auth routes first before registering other routes
+  await setupAuth(app);
+  registerAuthRoutes(app);
+  
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

@@ -17,7 +17,11 @@ export function serveStatic(app) {
   app.use(express.static(distPath));
 
   // EXPRESS 5 FIX — DO NOT USE "*"
-  app.get(/.*/, (req, res) => {
+  // Only serve index.html for non-API routes
+  app.get(/.*/, (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
     res.sendFile(path.join(distPath, "index.html"));
   });
 }
