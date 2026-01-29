@@ -35,6 +35,7 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -70,7 +71,9 @@ export default function Review() {
   const [userModel, setUserModel] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [searchingImage, setSearchingImage] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
+  const [clearingArticles, setClearingArticles] = useState(false);
 
   const fetchGlobalSettings = async () => {
     try {
@@ -504,6 +507,105 @@ export default function Review() {
     }
   };
 
+  const handleGenerateAiImage = async () => {
+    if (!currentPost) return;
+
+    if (!currentPost.generatedCaption) {
+      toast({
+        title: "Caption Required",
+        description: "Please generate a caption first before generating an AI image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingImage(true);
+    try {
+      const response = await fetch(`/api/posts/${currentPost.id}/generate-image`, {
+        method: "POST",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to generate image");
+      }
+
+      if (result.success) {
+        toast({
+          title: "Image Generated",
+          description: "AI image has been generated and added to the post.",
+        });
+
+        setPosts((prev) => {
+          const newPosts = [...prev];
+          const index = newPosts.findIndex(p => p.id === result.post.id);
+          if (index !== -1) {
+            newPosts[index] = {
+              ...newPosts[index],
+              imageUrl: result.post.imageUrl,
+              imageCredit: result.post.imageCredit
+            };
+          }
+          return newPosts;
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: result.message || "Failed to generate AI image",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Image Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate AI image",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  const handleClearArticles = async () => {
+    if (selectedCampaign === "all") {
+      toast({
+        title: "Select a Campaign",
+        description: "Please select a specific campaign to clear articles.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setClearingArticles(true);
+    try {
+      const response = await fetch(`/api/campaigns/${selectedCampaign}/posts/drafts`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to clear articles");
+      }
+
+      toast({
+        title: "Articles Cleared",
+        description: `Cleared ${result.deletedCount} draft article(s) from this campaign.`,
+      });
+
+      fetchPosts(parseInt(selectedCampaign));
+    } catch (error) {
+      toast({
+        title: "Clear Failed",
+        description: error instanceof Error ? error.message : "Failed to clear articles",
+        variant: "destructive",
+      });
+    } finally {
+      setClearingArticles(false);
+    }
+  };
+
   const handleRegenerate = async () => {
     if (!currentPost || !activeCampaign) return;
 
@@ -627,6 +729,23 @@ export default function Review() {
               <Search className="h-4 w-4" />
               Find New Article
             </Button>
+
+            {selectedCampaign !== "all" && (
+              <Button
+                variant="outline"
+                className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleClearArticles}
+                disabled={clearingArticles || posts.length === 0}
+                data-testid="button-clear-articles"
+              >
+                {clearingArticles ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Clear All Articles
+              </Button>
+            )}
 
             {posts.length > 1 && (
               <div className="flex items-center gap-2">
@@ -866,20 +985,46 @@ export default function Review() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
-                    onClick={handleSearchImage}
-                    disabled={searchingImage || !currentPost}
-                    data-testid="button-search-image"
-                  >
-                    {searchingImage ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ImageIcon className="h-4 w-4" />
-                    )}
-                    Find Better Image
-                  </Button>
+                  {(() => {
+                    const postCampaign = currentPost ? campaigns.find(c => c.id === currentPost.campaignId) : null;
+                    const useAiImage = postCampaign?.useAiImage ?? false;
+                    
+                    if (useAiImage) {
+                      return (
+                        <Button
+                          variant="outline"
+                          className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
+                          onClick={handleGenerateAiImage}
+                          disabled={generatingImage || !currentPost || !currentPost.generatedCaption}
+                          data-testid="button-generate-image"
+                        >
+                          {generatingImage ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Wand2 className="h-4 w-4" />
+                          )}
+                          Generate AI Image
+                        </Button>
+                      );
+                    }
+                    
+                    return (
+                      <Button
+                        variant="outline"
+                        className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
+                        onClick={handleSearchImage}
+                        disabled={searchingImage || !currentPost}
+                        data-testid="button-search-image"
+                      >
+                        {searchingImage ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-4 w-4" />
+                        )}
+                        Find Better Image
+                      </Button>
+                    );
+                  })()}
                   <Button
                     variant="outline"
                     className="gap-2 h-10 border-dashed hover:border-primary hover:text-primary transition-all"
