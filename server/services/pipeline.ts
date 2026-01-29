@@ -120,7 +120,7 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
       status: newStatus,
       scheduledFor,
       aiModel: modelName,
-    });
+    }, campaign.userId);
 
     if (campaign.autoPublish && scheduledFor) {
       await storage.createLog({
@@ -147,7 +147,7 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
       status: "failed",
       failureReason: errorMessage,
       retryCount: (post.retryCount || 0) + 1,
-    });
+    }, campaign.userId);
 
     await storage.createLog({
       campaignId: campaign.id,
@@ -183,7 +183,7 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
       await storage.updatePost(post.id, {
         status: "posted",
         postedAt: new Date(),
-      });
+      }, campaign.userId);
 
       await storage.createLog({
         campaignId: campaign.id,
@@ -215,7 +215,7 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
     status: "failed",
     failureReason: lastError || "Max retries exceeded",
     retryCount: attempts,
-  });
+  }, campaign.userId);
 
   await storage.createLog({
     campaignId: campaign.id,
@@ -228,17 +228,17 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
   throw new Error(`Publishing failed after ${MAX_RETRIES} attempts: ${lastError}`);
 }
 
-export async function processDraftPosts(campaignId: number): Promise<{
+export async function processDraftPosts(campaignId: number, userId?: string): Promise<{
   processed: number;
   success: number;
   failed: number;
 }> {
-  const campaign = await storage.getCampaign(campaignId);
+  const campaign = await storage.getCampaign(campaignId, userId);
   if (!campaign) {
     throw new Error(`Campaign ${campaignId} not found`);
   }
 
-  const drafts = await storage.getPostsByCampaign(campaignId);
+  const drafts = await storage.getPostsByCampaign(campaignId, 50, campaign.userId);
   const unprocessedDrafts = drafts.filter(
     (p) => p.status === "draft" && !p.generatedCaption
   );
@@ -268,7 +268,7 @@ export async function publishScheduledPosts(): Promise<{
   const result = { published: 0, failed: 0 };
 
   for (const campaign of allCampaigns) {
-    const posts = await storage.getPostsByCampaign(campaign.id);
+    const posts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
     const scheduledPosts = posts.filter(
       (p) =>
         p.status === "scheduled" &&
@@ -305,7 +305,7 @@ export async function processNextPosts(
     // Skip auto-publish campaigns - they're handled by checkAndScheduleNextPost
     if (campaign.autoPublish) continue;
 
-    const posts = await storage.getPostsByCampaign(campaign.id);
+    const posts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
     
     const postsNeedingPrep = posts.filter((p) => {
       if (p.status !== "approved" && p.status !== "scheduled") return false;

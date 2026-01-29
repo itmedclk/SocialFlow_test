@@ -120,7 +120,7 @@ async function checkAndScheduleNextPost(campaign: Campaign): Promise<boolean> {
   }
 
   // Check if there's already a post scheduled for this time slot
-  const posts = await storage.getPostsByCampaign(campaign.id);
+  const posts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
   const hasScheduledPost = posts.some((post) => {
     if (post.status !== "scheduled" || !post.scheduledFor) return false;
     const postTime = new Date(post.scheduledFor);
@@ -150,7 +150,7 @@ async function checkAndScheduleNextPost(campaign: Campaign): Promise<boolean> {
   
   try {
     // Step 2: Refresh posts list to include newly created drafts
-    const updatedPosts = await storage.getPostsByCampaign(campaign.id);
+    const updatedPosts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
     
     // Step 3: Find ONE draft to schedule for this time slot
     // Priority: drafts with captions first, then unprocessed drafts
@@ -165,7 +165,7 @@ async function checkAndScheduleNextPost(campaign: Campaign): Promise<boolean> {
       await storage.updatePost(oldestDraft.id, {
         status: "scheduled",
         scheduledFor: nextScheduledTime,
-      });
+      }, campaign.userId);
       await storage.createLog({
         campaignId: campaign.id,
         postId: oldestDraft.id,
@@ -243,14 +243,14 @@ export async function runNow(
 
     case "process":
       if (campaignId) {
-        return await processDraftPosts(campaignId);
+        return await processDraftPosts(campaignId, userId);
       } else {
         const campaigns = await storage.getActiveCampaigns(userId);
         const results = [];
         for (const campaign of campaigns) {
           results.push({
             campaignId: campaign.id,
-            result: await processDraftPosts(campaign.id),
+            result: await processDraftPosts(campaign.id, campaign.userId),
           });
         }
         return results;

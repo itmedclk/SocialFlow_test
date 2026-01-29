@@ -403,7 +403,7 @@ export async function registerRoutes(
           return res.status(404).json({ error: "Campaign not found" });
         }
 
-        const result = await processDraftPosts(id);
+        const result = await processDraftPosts(id, userId);
         res.json({
           ok: true,
           message: `Processed ${result.processed} drafts: ${result.success} succeeded, ${result.failed} failed`,
