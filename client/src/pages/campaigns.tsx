@@ -45,7 +45,7 @@ export default function Campaigns() {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch('/api/campaigns');
+      const response = await fetch('/api/campaigns', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch campaigns');
       const data = await response.json();
       setCampaigns(data);
@@ -61,6 +61,7 @@ export default function Campaigns() {
       const response = await fetch(`/api/campaigns/${campaign.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ isActive: !campaign.isActive })
       });
       
@@ -76,7 +77,8 @@ export default function Campaigns() {
     
     try {
       const response = await fetch(`/api/campaigns/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
       
       if (!response.ok) throw new Error('Failed to delete campaign');

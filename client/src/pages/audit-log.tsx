@@ -39,7 +39,7 @@ export default function AuditLog() {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch('/api/campaigns');
+      const response = await fetch('/api/campaigns', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch campaigns');
       const data = await response.json();
       setCampaigns(data);
@@ -54,7 +54,7 @@ export default function AuditLog() {
       const url = selectedCampaignId !== "all" 
         ? `/api/logs?campaignId=${selectedCampaignId}&limit=100`
         : '/api/logs?limit=100';
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch logs');
       const data = await response.json();
       setLogs(data);

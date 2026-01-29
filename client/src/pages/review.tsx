@@ -89,7 +89,7 @@ export default function Review() {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch("/api/campaigns");
+      const response = await fetch("/api/campaigns", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch campaigns");
       const data = await response.json();
       setCampaigns(data);
@@ -107,7 +107,7 @@ export default function Review() {
       const url = campaignId
         ? `/api/posts?campaignId=${campaignId}&status=draft${postId ? `&includePostId=${postId}` : ""}`
         : `/api/posts?status=draft${postId ? `&includePostId=${postId}` : ""}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch posts");
       const data = await response.json();
       setPosts(data);
@@ -121,7 +121,7 @@ export default function Review() {
 
   const fetchUserSettings = async () => {
     try {
-      const response = await fetch("/api/settings");
+      const response = await fetch("/api/settings", { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setUserModel(data.aiModel);
@@ -210,6 +210,7 @@ export default function Review() {
       const response = await fetch(`/api/campaigns/${activeCampaign.id}/prompt`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ aiPrompt: prompt }),
       });
 
@@ -264,6 +265,7 @@ export default function Review() {
         `/api/campaigns/${campaignToUse.id}/fetch`,
         {
           method: "POST",
+          credentials: "include",
         },
       );
       const result = await response.json();
@@ -291,6 +293,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ generatedCaption: caption }),
       });
 
@@ -328,6 +331,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           status: "scheduled",
           generatedCaption: caption,
@@ -343,6 +347,7 @@ export default function Review() {
       await fetch("/api/logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           campaignId: currentPost.campaignId,
           postId: currentPost.id,
@@ -375,6 +380,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           generatedCaption: caption,
         }),
@@ -408,6 +414,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           prompt: prompt || activeCampaign.aiPrompt,
           campaignId: activeCampaign.id,
@@ -451,6 +458,7 @@ export default function Review() {
     try {
       const response = await fetch(`/api/posts/${currentPost.id}/search-image?offset=${currentOffset}`, {
         method: "POST",
+        credentials: "include",
       });
 
       const result = await response.json();
@@ -614,6 +622,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           prompt: prompt || activeCampaign.aiPrompt,
           campaignId: activeCampaign.id,
@@ -666,6 +675,7 @@ export default function Review() {
       const response = await fetch(`/api/posts/${currentPost.id}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ reason: "Rejected by user" }),
       });
 

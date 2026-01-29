@@ -1,4 +1,17 @@
-import { campaigns, posts, logs, userSettings, type Campaign, type InsertCampaign, type Post, type InsertPost, type Log, type InsertLog, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import {
+  campaigns,
+  posts,
+  logs,
+  userSettings,
+  type Campaign,
+  type InsertCampaign,
+  type Post,
+  type InsertPost,
+  type Log,
+  type InsertLog,
+  type UserSettings,
+  type InsertUserSettings,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt } from "drizzle-orm";
 
@@ -6,30 +19,54 @@ export interface IStorage {
   // User settings methods
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
   upsertUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
-  
+
   // Campaign methods (with userId filtering)
   getCampaign(id: number, userId?: string): Promise<Campaign | undefined>;
   getAllCampaigns(userId?: string): Promise<Campaign[]>;
   getActiveCampaigns(userId?: string): Promise<Campaign[]>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
-  updateCampaign(id: number, campaign: Partial<InsertCampaign>, userId?: string): Promise<Campaign | undefined>;
+  updateCampaign(
+    id: number,
+    campaign: Partial<InsertCampaign>,
+    userId?: string,
+  ): Promise<Campaign | undefined>;
   deleteCampaign(id: number, userId?: string): Promise<boolean>;
-  
+
   // Post methods (with userId filtering)
   getPost(id: number, userId?: string): Promise<Post | undefined>;
-  getPostsByCampaign(campaignId: number, limit?: number, userId?: string): Promise<Post[]>;
+  getPostsByCampaign(
+    campaignId: number,
+    limit?: number,
+    userId?: string,
+  ): Promise<Post[]>;
+
   getPostByGuid(guid: string, campaignId?: number): Promise<Post | undefined>;
+
   createPost(post: InsertPost): Promise<Post>;
-  updatePost(id: number, post: Partial<InsertPost>, userId?: string): Promise<Post | undefined>;
+  updatePost(
+    id: number,
+    post: Partial<InsertPost>,
+    userId?: string,
+  ): Promise<Post | undefined>;
   getScheduledPosts(userId?: string): Promise<Post[]>;
   getDraftPosts(campaignId?: number, userId?: string): Promise<Post[]>;
-  deleteDraftPostsByCampaign(campaignId: number, userId?: string): Promise<number>;
-  deleteAllPostsByCampaign(campaignId: number, userId?: string): Promise<number>;
+  deleteDraftPostsByCampaign(
+    campaignId: number,
+    userId?: string,
+  ): Promise<number>;
+  deleteAllPostsByCampaign(
+    campaignId: number,
+    userId?: string,
+  ): Promise<number>;
   deleteOldPublishedPosts(daysOld: number): Promise<number>;
-  
+
   // Log methods (with userId filtering)
   createLog(log: InsertLog): Promise<Log>;
-  getLogsByCampaign(campaignId: number, limit?: number, userId?: string): Promise<Log[]>;
+  getLogsByCampaign(
+    campaignId: number,
+    limit?: number,
+    userId?: string,
+  ): Promise<Log[]>;
   getAllLogs(limit?: number, userId?: string): Promise<Log[]>;
 }
 
@@ -39,12 +76,19 @@ export class DatabaseStorage implements IStorage {
   // ============================================
   async getUserSettings(userId: string): Promise<UserSettings | undefined> {
     console.log(`[Storage] Fetching settings for userId: "${userId}"`);
-    const settings = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
-    console.log(`[Storage] Found ${settings.length} records for userId: "${userId}"`);
+    const settings = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId));
+    console.log(
+      `[Storage] Found ${settings.length} records for userId: "${userId}"`,
+    );
     return settings[0] || undefined;
   }
 
-  async upsertUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+  async upsertUserSettings(
+    settings: InsertUserSettings,
+  ): Promise<UserSettings> {
     const [result] = await db
       .insert(userSettings)
       .values(settings)
@@ -71,27 +115,46 @@ export class DatabaseStorage implements IStorage {
   // ============================================
   // Campaign Methods
   // ============================================
-  async getCampaign(id: number, userId?: string): Promise<Campaign | undefined> {
+  async getCampaign(
+    id: number,
+    userId?: string,
+  ): Promise<Campaign | undefined> {
     if (userId) {
-      const [campaign] = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
+      const [campaign] = await db
+        .select()
+        .from(campaigns)
+        .where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
       return campaign || undefined;
     }
-    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id));
     return campaign || undefined;
   }
 
   async getAllCampaigns(userId?: string): Promise<Campaign[]> {
     if (userId) {
-      return await db.select().from(campaigns).where(eq(campaigns.userId, userId)).orderBy(desc(campaigns.createdAt));
+      return await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.userId, userId))
+        .orderBy(desc(campaigns.createdAt));
     }
     return await db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
   }
 
   async getActiveCampaigns(userId?: string): Promise<Campaign[]> {
     if (userId) {
-      return await db.select().from(campaigns).where(and(eq(campaigns.isActive, true), eq(campaigns.userId, userId)));
+      return await db
+        .select()
+        .from(campaigns)
+        .where(and(eq(campaigns.isActive, true), eq(campaigns.userId, userId)));
     }
-    return await db.select().from(campaigns).where(eq(campaigns.isActive, true));
+    return await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.isActive, true));
   }
 
   async createCampaign(insertCampaign: InsertCampaign): Promise<Campaign> {
@@ -102,7 +165,11 @@ export class DatabaseStorage implements IStorage {
     return campaign;
   }
 
-  async updateCampaign(id: number, updateData: Partial<InsertCampaign>, userId?: string): Promise<Campaign | undefined> {
+  async updateCampaign(
+    id: number,
+    updateData: Partial<InsertCampaign>,
+    userId?: string,
+  ): Promise<Campaign | undefined> {
     if (userId) {
       const [campaign] = await db
         .update(campaigns)
@@ -121,7 +188,9 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCampaign(id: number, userId?: string): Promise<boolean> {
     if (userId) {
-      const result = await db.delete(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
+      const result = await db
+        .delete(campaigns)
+        .where(and(eq(campaigns.id, id), eq(campaigns.userId, userId)));
       return (result.rowCount ?? 0) > 0;
     }
     const result = await db.delete(campaigns).where(eq(campaigns.id, id));
@@ -133,14 +202,21 @@ export class DatabaseStorage implements IStorage {
   // ============================================
   async getPost(id: number, userId?: string): Promise<Post | undefined> {
     if (userId) {
-      const [post] = await db.select().from(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+      const [post] = await db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.id, id), eq(posts.userId, userId)));
       return post || undefined;
     }
     const [post] = await db.select().from(posts).where(eq(posts.id, id));
     return post || undefined;
   }
 
-  async getPostsByCampaign(campaignId: number, limit: number = 50, userId?: string): Promise<Post[]> {
+  async getPostsByCampaign(
+    campaignId: number,
+    limit: number = 50,
+    userId?: string,
+  ): Promise<Post[]> {
     if (userId) {
       return await db
         .select()
@@ -157,13 +233,48 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getPostByGuid(guid: string, campaignId?: number): Promise<Post | undefined> {
+  async getPostByGuid(
+    guid: string,
+    campaignId?: number,
+  ): Promise<Post | undefined> {
     if (campaignId) {
       // Deduplication should be per-campaign: same article shouldn't appear twice in the same campaign
-      const [post] = await db.select().from(posts).where(and(eq(posts.sourceGuid, guid), eq(posts.campaignId, campaignId)));
+      const [post] = await db
+        .select()
+        .from(posts)
+        .where(
+          and(eq(posts.sourceGuid, guid), eq(posts.campaignId, campaignId)),
+        );
       return post || undefined;
     }
-    const [post] = await db.select().from(posts).where(eq(posts.sourceGuid, guid));
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.sourceGuid, guid));
+    return post || undefined;
+  }
+
+  async getPostByGuidInCampaign(
+    campaignId: number,
+    guid: string,
+  ): Promise<Post | undefined> {
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.campaignId, campaignId), eq(posts.sourceGuid, guid)));
+    return post || undefined;
+  }
+
+  async getPostByImageUrlInCampaign(
+    campaignId: number,
+    imageUrl: string,
+  ): Promise<Post | undefined> {
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(
+        and(eq(posts.campaignId, campaignId), eq(posts.imageUrl, imageUrl)),
+      );
     return post || undefined;
   }
 
@@ -175,7 +286,11 @@ export class DatabaseStorage implements IStorage {
     return post;
   }
 
-  async updatePost(id: number, updateData: Partial<InsertPost>, userId?: string): Promise<Post | undefined> {
+  async updatePost(
+    id: number,
+    updateData: Partial<InsertPost>,
+    userId?: string,
+  ): Promise<Post | undefined> {
     if (userId) {
       const [post] = await db
         .update(posts)
@@ -197,13 +312,15 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(posts)
-        .where(and(eq(posts.status, 'scheduled' as any), eq(posts.userId, userId)))
+        .where(
+          and(eq(posts.status, "scheduled" as any), eq(posts.userId, userId)),
+        )
         .orderBy(posts.scheduledFor);
     }
     return await db
       .select()
       .from(posts)
-      .where(eq(posts.status, 'scheduled' as any))
+      .where(eq(posts.status, "scheduled" as any))
       .orderBy(posts.scheduledFor);
   }
 
@@ -214,7 +331,13 @@ export class DatabaseStorage implements IStorage {
         return await db
           .select()
           .from(posts)
-          .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus), eq(posts.userId, userId)))
+          .where(
+            and(
+              eq(posts.campaignId, campaignId),
+              eq(posts.status, draftStatus),
+              eq(posts.userId, userId),
+            ),
+          )
           .orderBy(desc(posts.pubDate), desc(posts.createdAt));
       }
       return await db
@@ -227,10 +350,12 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(posts)
-        .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus)))
+        .where(
+          and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus)),
+        )
         .orderBy(desc(posts.pubDate), desc(posts.createdAt));
     }
-    
+
     return await db
       .select()
       .from(posts)
@@ -238,17 +363,31 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(posts.pubDate), desc(posts.createdAt));
   }
 
-  async deleteDraftPostsByCampaign(campaignId: number, userId?: string): Promise<number> {
+  async deleteDraftPostsByCampaign(
+    campaignId: number,
+    userId?: string,
+  ): Promise<number> {
     const draftStatus = "draft" as const;
     const drafts = userId
       ? await db
           .select({ id: posts.id })
           .from(posts)
-          .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus), eq(posts.userId, userId)))
+          .where(
+            and(
+              eq(posts.campaignId, campaignId),
+              eq(posts.status, draftStatus),
+              eq(posts.userId, userId),
+            ),
+          )
       : await db
           .select({ id: posts.id })
           .from(posts)
-          .where(and(eq(posts.campaignId, campaignId), eq(posts.status, draftStatus)));
+          .where(
+            and(
+              eq(posts.campaignId, campaignId),
+              eq(posts.status, draftStatus),
+            ),
+          );
 
     if (drafts.length === 0) {
       return 0;
@@ -261,12 +400,17 @@ export class DatabaseStorage implements IStorage {
     return drafts.length;
   }
 
-  async deleteAllPostsByCampaign(campaignId: number, userId?: string): Promise<number> {
+  async deleteAllPostsByCampaign(
+    campaignId: number,
+    userId?: string,
+  ): Promise<number> {
     const allPosts = userId
       ? await db
           .select({ id: posts.id })
           .from(posts)
-          .where(and(eq(posts.campaignId, campaignId), eq(posts.userId, userId)))
+          .where(
+            and(eq(posts.campaignId, campaignId), eq(posts.userId, userId)),
+          )
       : await db
           .select({ id: posts.id })
           .from(posts)
@@ -286,21 +430,23 @@ export class DatabaseStorage implements IStorage {
   async deleteOldPublishedPosts(daysOld: number): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    
+
     const postedStatus = "posted" as const;
     const oldPosts = await db
       .select({ id: posts.id })
       .from(posts)
-      .where(and(eq(posts.status, postedStatus), lt(posts.postedAt, cutoffDate)));
-    
+      .where(
+        and(eq(posts.status, postedStatus), lt(posts.postedAt, cutoffDate)),
+      );
+
     if (oldPosts.length === 0) {
       return 0;
     }
-    
+
     for (const post of oldPosts) {
       await db.delete(posts).where(eq(posts.id, post.id));
     }
-    
+
     return oldPosts.length;
   }
 
@@ -315,7 +461,11 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async getLogsByCampaign(campaignId: number, limit: number = 100, userId?: string): Promise<Log[]> {
+  async getLogsByCampaign(
+    campaignId: number,
+    limit: number = 100,
+    userId?: string,
+  ): Promise<Log[]> {
     if (userId) {
       return await db
         .select()

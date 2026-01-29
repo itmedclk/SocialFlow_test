@@ -879,8 +879,14 @@ export async function registerRoutes(
           );
 
           if (imageResult) {
-            imageUrl = imageResult.url;
-            imageCredit = imageResult.credit;
+            const duplicateImage = await storage.getPostByImageUrlInCampaign(
+              campaign.id,
+              imageResult.url,
+            );
+            if (!duplicateImage || duplicateImage.id === post.id) {
+              imageUrl = imageResult.url;
+              imageCredit = imageResult.credit;
+            }
           }
         }
 

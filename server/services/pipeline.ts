@@ -116,8 +116,11 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
     if (!imageUrl) {
       const ogImage = await extractOgImage(post.sourceUrl);
       if (ogImage) {
-        imageUrl = ogImage;
-        imageCredit = "Source article";
+        const duplicateOg = await storage.getPostByImageUrlInCampaign(campaign.id, ogImage);
+        if (!duplicateOg || duplicateOg.id === post.id) {
+          imageUrl = ogImage;
+          imageCredit = "Source article";
+        }
       }
     }
 
@@ -139,8 +142,11 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
         const imageResult = await searchImage(keywords, providers, campaign.id, imageAttempts - 1, settings);
         
         if (imageResult) {
-          imageUrl = imageResult.url;
-          imageCredit = imageResult.credit;
+          const duplicateImage = await storage.getPostByImageUrlInCampaign(campaign.id, imageResult.url);
+          if (!duplicateImage || duplicateImage.id === post.id) {
+            imageUrl = imageResult.url;
+            imageCredit = imageResult.credit;
+          }
         } else if (imageAttempts < MAX_RETRIES) {
           await storage.createLog({
             campaignId: campaign.id,

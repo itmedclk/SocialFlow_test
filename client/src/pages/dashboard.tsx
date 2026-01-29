@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/stats');
+      const response = await fetch('/api/stats', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
       setStats(data);
@@ -59,7 +59,7 @@ export default function Dashboard() {
   const handleTriggerRun = async () => {
     setFetching(true);
     try {
-      const response = await fetch('/api/fetch-all', { method: 'POST' });
+      const response = await fetch('/api/fetch-all', { method: 'POST', credentials: 'include' });
       if (!response.ok) throw new Error('Failed to trigger fetch');
       
       toast({

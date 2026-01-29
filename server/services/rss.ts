@@ -6,7 +6,7 @@ import { processNewPost } from "./pipeline";
 const parser = new Parser({
   timeout: 10000,
   headers: {
-    'User-Agent': 'SocialFlow/1.0 RSS Reader',
+    "User-Agent": "SocialFlow/1.0 RSS Reader",
   },
 });
 
@@ -22,8 +22,8 @@ export interface ParsedArticle {
 export async function fetchFeed(url: string): Promise<ParsedArticle[]> {
   try {
     const feed = await parser.parseURL(url);
-    
-    return feed.items.map(item => parseArticle(item));
+
+    return feed.items.map((item) => parseArticle(item));
   } catch (error) {
     console.error(`Failed to fetch feed: ${url}`, error);
     throw new Error(`Failed to fetch RSS feed: ${url}`);
@@ -31,11 +31,14 @@ export async function fetchFeed(url: string): Promise<ParsedArticle[]> {
 }
 
 function parseArticle(item: Parser.Item): ParsedArticle {
-  const snippet = extractSnippet(item.contentSnippet || item.content || item.summary || "");
-  const imageUrl = extractImageFromContent(item.content || "") || 
-                   (item as any).enclosure?.url || 
-                   (item as any)["media:content"]?.$.url ||
-                   null;
+  const snippet = extractSnippet(
+    item.contentSnippet || item.content || item.summary || "",
+  );
+  const imageUrl =
+    extractImageFromContent(item.content || "") ||
+    (item as any).enclosure?.url ||
+    (item as any)["media:content"]?.$.url ||
+    null;
 
   return {
     title: item.title || "Untitled",
@@ -52,9 +55,9 @@ function extractSnippet(content: string, maxLength: number = 500): string {
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
-  
+
   if (stripped.length <= maxLength) return stripped;
-  
+
   return stripped.substring(0, maxLength).trim() + "...";
 }
 
@@ -63,18 +66,26 @@ function extractImageFromContent(content: string): string | null {
   return imgMatch ? imgMatch[1] : null;
 }
 
-export async function isNewArticle(guid: string, campaignId?: number): Promise<boolean> {
+export async function isNewArticle(
+  guid: string,
+  campaignId?: number,
+): Promise<boolean> {
   const existingPost = await storage.getPostByGuid(guid, campaignId);
+
   return !existingPost;
 }
 
-export async function processCampaignFeeds(campaignId: number, userId?: string, targetScheduledTime?: Date): Promise<{
+export async function processCampaignFeeds(
+  campaignId: number,
+  userId?: string,
+  targetScheduledTime?: Date,
+): Promise<{
   fetched: number;
   new: number;
   errors: string[];
 }> {
   const campaign = await storage.getCampaign(campaignId, userId);
-  
+
   if (!campaign) {
     throw new Error(`Campaign ${campaignId} not found`);
   }
@@ -86,19 +97,19 @@ export async function processCampaignFeeds(campaignId: number, userId?: string, 
   };
 
   const rssUrls = campaign.rssUrls || [];
-  
+
   for (const url of rssUrls) {
     if (!url.trim()) continue;
-    
+
     try {
       const articles = await fetchFeed(url);
       // Fetch only 30 items per feed source
       const limitedArticles = articles.slice(0, 30);
       result.fetched += limitedArticles.length;
-      
+
       for (const article of limitedArticles) {
         const isNew = await isNewArticle(article.guid, campaignId);
-        
+
         if (isNew) {
           const postData: InsertPost = {
             campaignId,
@@ -118,7 +129,8 @@ export async function processCampaignFeeds(campaignId: number, userId?: string, 
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       result.errors.push(`Feed ${url}: ${errorMessage}`);
     }
   }
@@ -126,9 +138,11 @@ export async function processCampaignFeeds(campaignId: number, userId?: string, 
   return result;
 }
 
-export async function processAllActiveCampaigns(userId?: string): Promise<void> {
+export async function processAllActiveCampaigns(
+  userId?: string,
+): Promise<void> {
   const campaigns = await storage.getActiveCampaigns(userId);
-  
+
   for (const campaign of campaigns) {
     try {
       await processCampaignFeeds(campaign.id, userId);
@@ -137,5 +151,3 @@ export async function processAllActiveCampaigns(userId?: string): Promise<void> 
     }
   }
 }
-
-
