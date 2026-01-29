@@ -37,6 +37,8 @@ interface UserSettings {
   postlyWorkspaceId: string | null;
   unsplashAccessKey: string | null;
   pexelsApiKey: string | null;
+  aiImageModel: string | null;
+  novitaApiKey: string | null;
 }
 
 export default function Settings() {
@@ -55,6 +57,8 @@ export default function Settings() {
     postlyWorkspaceId: "",
     unsplashAccessKey: "",
     pexelsApiKey: "",
+    aiImageModel: "flux-1-schnell",
+    novitaApiKey: "",
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<UserSettings>(
@@ -85,6 +89,8 @@ export default function Settings() {
         postlyWorkspaceId: settings.postlyWorkspaceId || "",
         unsplashAccessKey: settings.unsplashAccessKey || "",
         pexelsApiKey: settings.pexelsApiKey || "",
+        aiImageModel: settings.aiImageModel || "flux-1-schnell",
+        novitaApiKey: settings.novitaApiKey || "",
       });
     }
   }, [settings]);
@@ -482,6 +488,83 @@ export default function Settings() {
                       )}
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-primary" />
+                  <CardTitle>AI Image Generation</CardTitle>
+                  <Badge variant="secondary" className="text-xs">
+                    Optional
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Configure Novita AI for generating images based on captions. Enable per-campaign in campaign settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="novitaApiKey">Novita AI API Key</Label>
+                  <div className="relative">
+                    <Input
+                      id="novitaApiKey"
+                      type={showKeys["novita"] ? "text" : "password"}
+                      placeholder="API Key"
+                      value={formData.novitaApiKey}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          novitaApiKey: e.target.value,
+                        }))
+                      }
+                      className="pr-10 font-mono"
+                      data-testid="input-novita-api-key"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowKey("novita")}
+                    >
+                      {showKeys["novita"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Get your API key from{" "}
+                    <a href="https://novita.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      novita.ai
+                    </a>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aiImageModel">Image Model</Label>
+                  <select
+                    id="aiImageModel"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={formData.aiImageModel}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        aiImageModel: e.target.value,
+                      }))
+                    }
+                    data-testid="select-ai-image-model"
+                  >
+                    <option value="flux-1-schnell">Flux 1 Schnell (Fast)</option>
+                    <option value="flux-1-dev">Flux 1 Dev (Quality)</option>
+                    <option value="sdxl">SDXL</option>
+                    <option value="sd-3">Stable Diffusion 3</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose the AI model for image generation. Flux models are recommended for speed and quality.
+                  </p>
                 </div>
               </CardContent>
             </Card>
