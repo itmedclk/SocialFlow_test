@@ -22,6 +22,7 @@ export const campaigns = pgTable("campaigns", {
   useSpecificAccount: boolean("use_specific_account").default(false),
   specificAccountId: text("specific_account_id"),
   autoPublish: boolean("auto_publish").default(false),
+  useAiImage: boolean("use_ai_image").default(false),
   userId: text("user_id"),
   safetyForbiddenTerms: text("safety_forbidden_terms"),
   safetyMaxLength: integer("safety_max_length").default(2000),
@@ -110,6 +111,8 @@ export const userSettings = pgTable("user_settings", {
   unsplashAccessKey: text("unsplash_access_key"),
   pexelsApiKey: text("pexels_api_key"),
   postlyWorkspaceId: text("postly_workspace_id"),
+  aiImageModel: text("ai_image_model"),
+  novitaApiKey: text("novita_api_key"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
