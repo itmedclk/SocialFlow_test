@@ -63,8 +63,8 @@ function extractImageFromContent(content: string): string | null {
   return imgMatch ? imgMatch[1] : null;
 }
 
-export async function isNewArticle(guid: string, userId?: string): Promise<boolean> {
-  const existingPost = await storage.getPostByGuid(guid, userId);
+export async function isNewArticle(guid: string, campaignId?: number): Promise<boolean> {
+  const existingPost = await storage.getPostByGuid(guid, campaignId);
   return !existingPost;
 }
 
@@ -97,7 +97,7 @@ export async function processCampaignFeeds(campaignId: number, userId?: string, 
       result.fetched += limitedArticles.length;
       
       for (const article of limitedArticles) {
-        const isNew = await isNewArticle(article.guid, userId);
+        const isNew = await isNewArticle(article.guid, campaignId);
         
         if (isNew) {
           const postData: InsertPost = {

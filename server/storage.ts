@@ -18,7 +18,7 @@ export interface IStorage {
   // Post methods (with userId filtering)
   getPost(id: number, userId?: string): Promise<Post | undefined>;
   getPostsByCampaign(campaignId: number, limit?: number, userId?: string): Promise<Post[]>;
-  getPostByGuid(guid: string, userId?: string): Promise<Post | undefined>;
+  getPostByGuid(guid: string, campaignId?: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
   updatePost(id: number, post: Partial<InsertPost>, userId?: string): Promise<Post | undefined>;
   getScheduledPosts(userId?: string): Promise<Post[]>;
@@ -152,9 +152,10 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getPostByGuid(guid: string, userId?: string): Promise<Post | undefined> {
-    if (userId) {
-      const [post] = await db.select().from(posts).where(and(eq(posts.sourceGuid, guid), eq(posts.userId, userId)));
+  async getPostByGuid(guid: string, campaignId?: number): Promise<Post | undefined> {
+    if (campaignId) {
+      // Deduplication should be per-campaign: same article shouldn't appear twice in the same campaign
+      const [post] = await db.select().from(posts).where(and(eq(posts.sourceGuid, guid), eq(posts.campaignId, campaignId)));
       return post || undefined;
     }
     const [post] = await db.select().from(posts).where(eq(posts.sourceGuid, guid));
