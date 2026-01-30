@@ -767,6 +767,21 @@ export async function registerRoutes(
         updateData.postlyWorkspaceId = existingSettings.postlyWorkspaceId;
       }
 
+      if (req.body.aiImageModel !== undefined) {
+        updateData.aiImageModel = req.body.aiImageModel || null;
+      } else if (existingSettings) {
+        updateData.aiImageModel = existingSettings.aiImageModel;
+      }
+
+      if (
+        req.body.novitaApiKey !== undefined &&
+        req.body.novitaApiKey !== "••••••••"
+      ) {
+        updateData.novitaApiKey = req.body.novitaApiKey || null;
+      } else if (existingSettings) {
+        updateData.novitaApiKey = existingSettings.novitaApiKey;
+      }
+
       const settings = await storage.upsertUserSettings(updateData);
 
       res.json({
@@ -776,6 +791,7 @@ export async function registerRoutes(
         postlyWorkspaceId: settings.postlyWorkspaceId || null,
         unsplashAccessKey: settings.unsplashAccessKey ? "••••••••" : null,
         pexelsApiKey: settings.pexelsApiKey ? "••••••••" : null,
+        novitaApiKey: settings.novitaApiKey ? "••••••••" : null,
       });
     } catch (error) {
       console.error("Error updating settings:", error);
