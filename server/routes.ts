@@ -948,9 +948,11 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Novita API key not configured in settings" });
         }
 
-        const { generateAiImage, generateImagePrompt } = await import("./services/ai-image");
+        const { generateAiImage } = await import("./services/ai-image");
 
-        const imagePrompt = generateImagePrompt(post.generatedCaption, campaign.topic);
+        // Create a wellness-focused image prompt for regeneration
+        const topic = campaign.topic || "wellness";
+        const imagePrompt = `Clean, bright, healthy, happy lifestyle photography. ${topic} theme. Natural lighting, warm colors, friendly mood. No text, no logos, no icons, no organs, no medical imagery.`;
         const imageResult = await generateAiImage(
           imagePrompt,
           userSettings.aiImageModel || "flux-1-schnell",

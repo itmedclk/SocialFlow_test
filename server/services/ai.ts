@@ -97,6 +97,7 @@ async function fetchFullContent(url: string): Promise<string | null> {
 export interface CaptionResult {
   caption: string;
   imageSearchPhrase: string;
+  imagePrompt: string;
 }
 
 export async function generateCaption(
@@ -159,6 +160,7 @@ export async function generateCaption(
     // Parse JSON response
     let caption: string;
     let imageSearchPhrase: string = "";
+    let imagePrompt: string = "";
 
     try {
       // Try to extract JSON from the response (may be wrapped in markdown code blocks)
@@ -167,6 +169,7 @@ export async function generateCaption(
         const parsed = JSON.parse(jsonMatch[0]);
         caption = parsed.caption || rawContent;
         imageSearchPhrase = parsed.imageSearchPhrase || "";
+        imagePrompt = parsed.imagePrompt || "";
       } else {
         // Fallback: treat entire response as caption
         caption = rawContent;
@@ -188,10 +191,10 @@ export async function generateCaption(
       userId: campaign.userId,
       level: "info",
       message: `Caption generated successfully`,
-      metadata: { model: config.model, captionLength: caption.length, imageSearchPhrase },
+      metadata: { model: config.model, captionLength: caption.length, imageSearchPhrase, imagePrompt: imagePrompt.substring(0, 100) },
     });
 
-    return { caption, imageSearchPhrase };
+    return { caption, imageSearchPhrase, imagePrompt };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -233,14 +236,26 @@ IMPORTANT: Never use "Thread x/x" or numbered thread formats in the output. Crea
     prompt += `\n\nTarget platforms: ${campaign.targetPlatforms.join(", ")}. Optimize the content for these platforms.`;
   }
 
-  // Add instruction for image search phrase
+  // Add instruction for image search phrase and image prompt
   prompt += `\n\nIMPORTANT: You must respond in the following JSON format:
 {
   "caption": "Your social media caption here",
-  "imageSearchPhrase": "2-4 word phrase for stock photo search"
+  "imageSearchPhrase": "2-4 word phrase for stock photo search",
+  "imagePrompt": "Detailed AI image generation prompt"
 }
 
-The imageSearchPhrase should be a short, descriptive phrase (2-4 words) that would work well for searching stock photos. Focus on the main visual concept or subject of the article. Examples: "business meeting", "nature landscape", "technology innovation", "healthy food". Do NOT include the imageSearchPhrase text in the caption itself.`;
+The imageSearchPhrase should be a short, descriptive phrase (2-4 words) that would work well for searching stock photos. Focus on the main visual concept or subject of the article. Examples: "healthy smoothie bowl", "nature meditation", "fresh vegetables", "yoga sunrise". Do NOT include the imageSearchPhrase text in the caption itself.
+
+The imagePrompt should be a detailed prompt for AI image generation. CRITICAL RULES for imagePrompt:
+- Create a clean, positive, healthy, happy, bright, and natural image
+- Focus on wellness, nature, food, lifestyle, or abstract concepts
+- NO organs, NO anatomy, NO medical scenes, NO surgery, NO blood
+- NO disgusting or scary content
+- NO logos, NO app icons, NO any icons, NO symbols
+- NO text, NO words, NO letters, NO writing, NO watermarks
+- NO mention of Instagram, Facebook, Twitter, TikTok, or any social media platform
+- The mood should be light, friendly, and have gentle wellness-style humor
+- Examples: "Fresh colorful fruits and vegetables on a wooden table with morning sunlight", "Person doing yoga on a beach at sunrise with calm ocean waves", "Cozy cup of herbal tea with honey and lemon on a rustic table"`;
 
   return prompt;
 }

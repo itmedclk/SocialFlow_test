@@ -1,7 +1,7 @@
 import { storage } from "../storage";
 import { generateCaption, validateContent, getSafetyConfigFromCampaign } from "./ai";
 import { searchImage, extractOgImage, getImageKeywordsFromCampaign } from "./images";
-import { generateAiImage, generateImagePrompt } from "./ai-image";
+import { generateAiImage } from "./ai-image";
 import { publishToPostly } from "./postly";
 import { CronExpressionParser } from "cron-parser";
 import type { Post, Campaign } from "@shared/schema";
@@ -27,6 +27,7 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
     const safetyConfig = getSafetyConfigFromCampaign(campaign);
     let caption: string | null = null;
     let imageSearchPhrase: string = "";
+    let imagePrompt: string = "";
     let safetyResult: { isValid: boolean; issues: string[] } = { isValid: false, issues: [] };
     
     const settings = campaign.userId ? await storage.getUserSettings(campaign.userId) : undefined;
@@ -36,6 +37,7 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
       const result = await generateCaption(post, campaign, overridePrompt);
       caption = result.caption;
       imageSearchPhrase = result.imageSearchPhrase;
+      imagePrompt = result.imagePrompt;
       safetyResult = validateContent(caption, safetyConfig);
       
       if (safetyResult.isValid) {
@@ -65,11 +67,12 @@ export async function processNewPost(post: Post, campaign: Campaign, overridePro
     // Check if campaign uses AI image generation
     if (campaign.useAiImage && caption && settings?.novitaApiKey) {
       aiImageAttempted = true;
-      // Generate AI image from caption
+      // Use AI-generated image prompt from caption generation
       try {
-        const imagePrompt = generateImagePrompt(caption, campaign.topic);
+        // Use the imagePrompt from AI caption generation, fallback to a simple prompt if not provided
+        const finalImagePrompt = imagePrompt || `Healthy, happy, bright wellness lifestyle image related to ${campaign.topic || 'wellness'}`;
         const aiImageResult = await generateAiImage(
-          imagePrompt,
+          finalImagePrompt,
           settings.aiImageModel || "flux-1-schnell",
           settings.novitaApiKey,
           campaign.id,
