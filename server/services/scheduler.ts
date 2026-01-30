@@ -160,35 +160,19 @@ async function checkAndScheduleNextPost(campaign: Campaign): Promise<boolean> {
     return false; // Already have a post scheduled for this slot
   }
 
-  // No post scheduled - fetch RSS to get new articles (creates drafts only)
-  console.log(`[Scheduler] No post scheduled for ${nextScheduledTime.toISOString()}, fetching RSS...`);
-  
-  // Step 1: Fetch RSS - this only creates drafts, does not schedule
-  // Wrapped in separate try/catch so RSS errors don't prevent scheduling existing drafts
-  try {
-    const result = await processCampaignFeeds(campaign.id, campaign.userId, nextScheduledTime);
-    if (result.new > 0) {
-      console.log(`[Scheduler] Found ${result.new} new articles (saved as drafts)`);
-    }
-  } catch (error) {
-    console.error(`[Scheduler] RSS fetch error for campaign ${campaign.id}:`, error);
-    // Continue to try scheduling existing drafts
-  }
+  // No post scheduled for this time slot - find a draft to schedule
+  console.log(`[Scheduler] No post scheduled for ${nextScheduledTime.toISOString()}, looking for drafts...`);
   
   try {
-    // Step 2: Refresh posts list to include newly created drafts
-    const updatedPosts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
-    
-    // Step 3: Find ONE draft to schedule for this time slot
-    // Priority: drafts with captions first, then unprocessed drafts
-    // Sort by oldest first to ensure FIFO processing
-    const draftsWithCaption = updatedPosts
+    // Step 1: Check for existing drafts WITH captions first (manually prepared)
+    const currentPosts = await storage.getPostsByCampaign(campaign.id, 50, campaign.userId);
+    const draftsWithCaption = currentPosts
       .filter((post) => post.status === "draft" && post.generatedCaption)
       .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
     
     if (draftsWithCaption.length > 0) {
+      // Use existing draft with caption - schedule it for this time slot
       const oldestDraft = draftsWithCaption[0];
-      // Schedule this existing draft for the target time
       await storage.updatePost(oldestDraft.id, {
         status: "scheduled",
         scheduledFor: nextScheduledTime,
@@ -200,12 +184,12 @@ async function checkAndScheduleNextPost(campaign: Campaign): Promise<boolean> {
         level: "info",
         message: `Draft scheduled for ${nextScheduledTime.toISOString()}`,
       });
-      console.log(`[Scheduler] Scheduled draft ${oldestDraft.id} for ${nextScheduledTime.toISOString()}`);
+      console.log(`[Scheduler] Scheduled existing draft ${oldestDraft.id} for ${nextScheduledTime.toISOString()}`);
       return true;
     }
     
-    // No drafts with captions - process an unprocessed draft (oldest first)
-    const unprocessedDrafts = updatedPosts
+    // Step 2: No drafts with captions - check for unprocessed drafts
+    const unprocessedDrafts = currentPosts
       .filter((post) => post.status === "draft" && !post.generatedCaption)
       .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
     
