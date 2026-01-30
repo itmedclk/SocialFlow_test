@@ -193,5 +193,5 @@ export function generateImagePrompt(caption: string, topic: string): string {
     .trim()
     .substring(0, 200);
 
-  return `Professional social media image for ${topic}. ${cleanCaption}. High quality, vibrant colors, engaging composition, modern design, suitable for Instagram.`;
+  return `Create a clean, positive, Instagram-friendly health image about ${topic}. ${cleanCaption}. No organs, no medical scenes, no disgusting or scary content, no logos or app icons. The image should look healthy, happy, bright, and natural, with a light and friendly mood and gentle wellness-style humor. High quality, vibrant colors, engaging composition, modern design.`;
 }
