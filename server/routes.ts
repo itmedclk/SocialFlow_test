@@ -31,7 +31,9 @@ export async function registerRoutes(
   app.get("/api/campaigns", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log(`[DEBUG] GET /api/campaigns - userId: ${userId}, type: ${typeof userId}`);
       const campaigns = await storage.getAllCampaigns(userId);
+      console.log(`[DEBUG] GET /api/campaigns - found ${campaigns.length} campaigns for user ${userId}`);
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
@@ -684,7 +686,9 @@ export async function registerRoutes(
   app.get("/api/settings", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log(`[DEBUG] GET /api/settings - userId: ${userId}`);
       const settings = await storage.getUserSettings(userId);
+      console.log(`[DEBUG] GET /api/settings - settings found: ${settings ? 'yes' : 'no'}`);
 
       if (!settings) {
         return res.json({
