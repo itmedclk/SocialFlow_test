@@ -108,6 +108,7 @@ export class DatabaseStorage implements IStorage {
           googleClientId: settings.googleClientId,
           googleClientSecret: settings.googleClientSecret,
           googleSpreadsheetId: settings.googleSpreadsheetId,
+          googleRefreshToken: settings.googleRefreshToken,
           updatedAt: new Date(),
         },
       })

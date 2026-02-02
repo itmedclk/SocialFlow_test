@@ -102,6 +102,7 @@ export var userSettings = pgTable("user_settings", {
     googleClientId: text("google_client_id"),
     googleClientSecret: text("google_client_secret"),
     googleSpreadsheetId: text("google_spreadsheet_id"),
+    googleRefreshToken: text("google_refresh_token"),
     updatedAt: timestamp("updated_at").defaultNow(),
 });
 export var insertUserSettingsSchema = createInsertSchema(userSettings).omit({

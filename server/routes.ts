@@ -19,11 +19,26 @@ import {
 } from "./services/pipeline";
 import { runNow } from "./services/scheduler";
 import { isAuthenticated } from "./replit_integrations/auth";
+import { google } from "googleapis";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
+  const googleRedirectUri =
+    process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    "https://social-flow-test.replit.app/api/google/oauth/callback";
+
+  const buildGoogleClient = (settings: any) => {
+    if (!settings?.googleClientId || !settings?.googleClientSecret) {
+      throw new Error("Google OAuth client credentials are missing");
+    }
+    return new google.auth.OAuth2(
+      settings.googleClientId,
+      settings.googleClientSecret,
+      googleRedirectUri,
+    );
+  };
   // ============================================
   // Campaign Routes (authenticated)
   // ============================================
@@ -703,6 +718,7 @@ export async function registerRoutes(
           googleClientId: null,
           googleClientSecret: null,
           googleSpreadsheetId: null,
+          googleConnected: false,
         });
       }
 
@@ -716,6 +732,7 @@ export async function registerRoutes(
         googleClientId: settings.googleClientId || null,
         googleClientSecret: settings.googleClientSecret ? "••••••••" : null,
         googleSpreadsheetId: settings.googleSpreadsheetId || null,
+        googleConnected: Boolean(settings.googleRefreshToken),
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -823,6 +840,10 @@ export async function registerRoutes(
         updateData.googleSpreadsheetId = existingSettings.googleSpreadsheetId;
       }
 
+      if (existingSettings?.googleRefreshToken) {
+        updateData.googleRefreshToken = existingSettings.googleRefreshToken;
+      }
+
       const settings = await storage.upsertUserSettings(updateData);
 
       res.json({
@@ -836,12 +857,90 @@ export async function registerRoutes(
         googleClientId: settings.googleClientId || null,
         googleClientSecret: settings.googleClientSecret ? "••••••••" : null,
         googleSpreadsheetId: settings.googleSpreadsheetId || null,
+        googleConnected: Boolean(settings.googleRefreshToken),
       });
     } catch (error) {
       console.error("Error updating settings:", error);
       res.status(500).json({ error: "Failed to update settings" });
     }
   });
+
+  app.get("/api/google/oauth/start", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settings = await storage.getUserSettings(userId);
+      if (!settings?.googleClientId || !settings?.googleClientSecret) {
+        return res.status(400).json({
+          error: "Google Client ID/Secret must be saved in settings before connecting.",
+        });
+      }
+
+      const client = buildGoogleClient(settings);
+      const url = client.generateAuthUrl({
+        access_type: "offline",
+        prompt: "consent",
+        scope: ["https://www.googleapis.com/auth/spreadsheets"],
+      });
+
+      res.redirect(url);
+    } catch (error) {
+      console.error("Error starting Google OAuth:", error);
+      res.status(500).json({ error: "Failed to start Google OAuth" });
+    }
+  });
+
+  app.get(
+    "/api/google/oauth/callback",
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.claims.sub;
+        const code = req.query.code as string | undefined;
+        if (!code) {
+          return res.status(400).send("Missing OAuth code");
+        }
+
+        const settings = await storage.getUserSettings(userId);
+        if (!settings?.googleClientId || !settings?.googleClientSecret) {
+          return res
+            .status(400)
+            .send("Google Client ID/Secret must be set in settings.");
+        }
+
+        const client = buildGoogleClient(settings);
+        const { tokens } = await client.getToken(code);
+
+        if (!tokens.refresh_token) {
+          return res
+            .status(400)
+            .send("No refresh token returned. Reconnect and grant consent.");
+        }
+
+        await storage.upsertUserSettings({
+          userId,
+          aiApiKey: settings.aiApiKey,
+          aiBaseUrl: settings.aiBaseUrl,
+          aiModel: settings.aiModel,
+          globalAiPrompt: settings.globalAiPrompt,
+          postlyApiKey: settings.postlyApiKey,
+          unsplashAccessKey: settings.unsplashAccessKey,
+          pexelsApiKey: settings.pexelsApiKey,
+          postlyWorkspaceId: settings.postlyWorkspaceId,
+          aiImageModel: settings.aiImageModel,
+          novitaApiKey: settings.novitaApiKey,
+          googleClientId: settings.googleClientId,
+          googleClientSecret: settings.googleClientSecret,
+          googleSpreadsheetId: settings.googleSpreadsheetId,
+          googleRefreshToken: tokens.refresh_token,
+        });
+
+        res.redirect("/settings");
+      } catch (error) {
+        console.error("Error handling Google OAuth callback:", error);
+        res.status(500).send("Failed to complete Google OAuth");
+      }
+    },
+  );
 
   // Endpoint to search for images (authenticated)
   app.post(

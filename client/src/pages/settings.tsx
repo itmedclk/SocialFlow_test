@@ -42,6 +42,7 @@ interface UserSettings {
   googleClientId: string | null;
   googleClientSecret: string | null;
   googleSpreadsheetId: string | null;
+  googleConnected?: boolean;
 }
 
 export default function Settings() {
@@ -151,6 +152,10 @@ export default function Settings() {
 
   const handleSave = () => {
     saveMutation.mutate(formData);
+  };
+
+  const handleGoogleConnect = () => {
+    window.location.href = "/api/google/oauth/start";
   };
 
   if (authLoading) {
@@ -587,6 +592,24 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-primary/30 bg-primary/5 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Google connection</p>
+                    <p className="text-xs text-muted-foreground">
+                      {settings?.googleConnected
+                        ? "Connected. Posts will log to your sheet."
+                        : "Connect your Google account to enable Sheets logging."}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={settings?.googleConnected ? "outline" : "default"}
+                    onClick={handleGoogleConnect}
+                    data-testid="button-google-connect"
+                  >
+                    {settings?.googleConnected ? "Reconnect Google" : "Connect Google"}
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="googleClientId">Google OAuth Client ID</Label>
                   <Input
@@ -653,6 +676,9 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Use the ID from your Google Sheets URL (after /d/ and before /edit).
                   </p>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  OAuth Redirect URI: <span className="font-mono">https://social-flow-test.replit.app/api/google/oauth/callback</span>
                 </div>
               </CardContent>
             </Card>

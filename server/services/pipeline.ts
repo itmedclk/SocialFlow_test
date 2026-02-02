@@ -5,6 +5,7 @@ import { generateAiImage } from "./ai-image";
 import { publishToPostly } from "./postly";
 import { CronExpressionParser } from "cron-parser";
 import type { Post, Campaign } from "@shared/schema";
+import { appendPostToSheet } from "./google-sheets";
 
 const MAX_RETRIES = 3;
 
@@ -245,6 +246,26 @@ export async function publishPost(post: Post, campaign: Campaign, captionOverrid
         level: "info",
         message: `Post published successfully on attempt ${attempts}`,
       });
+
+      try {
+        await appendPostToSheet(post, campaign, captionOverride);
+        await storage.createLog({
+          campaignId: campaign.id,
+          postId: post.id,
+          userId: campaign.userId,
+          level: "info",
+          message: "Google Sheets log entry created",
+        });
+      } catch (sheetError) {
+        const sheetMessage = sheetError instanceof Error ? sheetError.message : String(sheetError);
+        await storage.createLog({
+          campaignId: campaign.id,
+          postId: post.id,
+          userId: campaign.userId,
+          level: "warning",
+          message: `Google Sheets logging failed: ${sheetMessage}`,
+        });
+      }
 
       return;
     }
