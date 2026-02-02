@@ -700,6 +700,9 @@ export async function registerRoutes(
           postlyApiKey: null,
           unsplashAccessKey: null,
           pexelsApiKey: null,
+          googleClientId: null,
+          googleClientSecret: null,
+          googleSpreadsheetId: null,
         });
       }
 
@@ -710,6 +713,9 @@ export async function registerRoutes(
         postlyWorkspaceId: settings.postlyWorkspaceId || null,
         unsplashAccessKey: settings.unsplashAccessKey ? "••••••••" : null,
         pexelsApiKey: settings.pexelsApiKey ? "••••••••" : null,
+        googleClientId: settings.googleClientId || null,
+        googleClientSecret: settings.googleClientSecret ? "••••••••" : null,
+        googleSpreadsheetId: settings.googleSpreadsheetId || null,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -796,6 +802,27 @@ export async function registerRoutes(
         updateData.novitaApiKey = existingSettings.novitaApiKey;
       }
 
+      if (req.body.googleClientId !== undefined) {
+        updateData.googleClientId = req.body.googleClientId || null;
+      } else if (existingSettings) {
+        updateData.googleClientId = existingSettings.googleClientId;
+      }
+
+      if (
+        req.body.googleClientSecret !== undefined &&
+        req.body.googleClientSecret !== "••••••••"
+      ) {
+        updateData.googleClientSecret = req.body.googleClientSecret || null;
+      } else if (existingSettings) {
+        updateData.googleClientSecret = existingSettings.googleClientSecret;
+      }
+
+      if (req.body.googleSpreadsheetId !== undefined) {
+        updateData.googleSpreadsheetId = req.body.googleSpreadsheetId || null;
+      } else if (existingSettings) {
+        updateData.googleSpreadsheetId = existingSettings.googleSpreadsheetId;
+      }
+
       const settings = await storage.upsertUserSettings(updateData);
 
       res.json({
@@ -806,6 +833,9 @@ export async function registerRoutes(
         unsplashAccessKey: settings.unsplashAccessKey ? "••••••••" : null,
         pexelsApiKey: settings.pexelsApiKey ? "••••••••" : null,
         novitaApiKey: settings.novitaApiKey ? "••••••••" : null,
+        googleClientId: settings.googleClientId || null,
+        googleClientSecret: settings.googleClientSecret ? "••••••••" : null,
+        googleSpreadsheetId: settings.googleSpreadsheetId || null,
       });
     } catch (error) {
       console.error("Error updating settings:", error);

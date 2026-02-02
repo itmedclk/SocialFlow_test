@@ -105,6 +105,9 @@ export class DatabaseStorage implements IStorage {
           postlyWorkspaceId: settings.postlyWorkspaceId,
           aiImageModel: settings.aiImageModel,
           novitaApiKey: settings.novitaApiKey,
+          googleClientId: settings.googleClientId,
+          googleClientSecret: settings.googleClientSecret,
+          googleSpreadsheetId: settings.googleSpreadsheetId,
           updatedAt: new Date(),
         },
       })

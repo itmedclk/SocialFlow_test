@@ -12,6 +12,11 @@ interface StepProps {
   index: number;
 }
 
+interface PipelineVisualizerProps {
+  isRunning?: boolean;
+  onComplete?: () => void;
+}
+
 function getStepsFromPosts(posts: Post[]): StepProps[] {
   const drafts = posts.filter(p => p.status === "draft");
   const approved = posts.filter(p => p.status === "approved");
@@ -74,12 +79,21 @@ function getStepsFromPosts(posts: Post[]): StepProps[] {
   ];
 }
 
-export function PipelineVisualizer() {
+export function PipelineVisualizer({ isRunning, onComplete }: PipelineVisualizerProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [steps, setSteps] = useState<StepProps[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const timeout = setTimeout(() => {
+      onComplete?.();
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [isRunning, onComplete]);
 
   useEffect(() => {
     fetchCampaigns();

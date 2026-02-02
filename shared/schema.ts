@@ -113,6 +113,9 @@ export const userSettings = pgTable("user_settings", {
   postlyWorkspaceId: text("postly_workspace_id"),
   aiImageModel: text("ai_image_model"),
   novitaApiKey: text("novita_api_key"),
+  googleClientId: text("google_client_id"),
+  googleClientSecret: text("google_client_secret"),
+  googleSpreadsheetId: text("google_spreadsheet_id"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

@@ -8,7 +8,8 @@
     "jsx": "preserve",
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "types": ["vite/client"],
+    "skipLibCheck": true,
+    "types": ["vite/client", "node"],
     "paths": {
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]

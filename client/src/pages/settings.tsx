@@ -39,6 +39,9 @@ interface UserSettings {
   pexelsApiKey: string | null;
   aiImageModel: string | null;
   novitaApiKey: string | null;
+  googleClientId: string | null;
+  googleClientSecret: string | null;
+  googleSpreadsheetId: string | null;
 }
 
 export default function Settings() {
@@ -59,6 +62,9 @@ export default function Settings() {
     pexelsApiKey: "",
     aiImageModel: "flux-1-schnell",
     novitaApiKey: "",
+    googleClientId: "",
+    googleClientSecret: "",
+    googleSpreadsheetId: "",
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<UserSettings>(
@@ -91,6 +97,9 @@ export default function Settings() {
         pexelsApiKey: settings.pexelsApiKey || "",
         aiImageModel: settings.aiImageModel || "flux-1-schnell",
         novitaApiKey: settings.novitaApiKey || "",
+        googleClientId: settings.googleClientId || "",
+        googleClientSecret: settings.googleClientSecret || "",
+        googleSpreadsheetId: settings.googleSpreadsheetId || "",
       });
     }
   }, [settings]);
@@ -559,6 +568,90 @@ export default function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Enter the Novita AI image model ID (e.g., flux-1-schnell, flux-1-dev, sdxl, sd-3)
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-primary" />
+                  <CardTitle>Google Sheets Logging</CardTitle>
+                  <Badge variant="secondary" className="text-xs">
+                    Optional
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Provide Google OAuth client credentials and the target Spreadsheet ID for recording published posts.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientId">Google OAuth Client ID</Label>
+                  <Input
+                    id="googleClientId"
+                    placeholder="1234567890-abc.apps.googleusercontent.com"
+                    value={formData.googleClientId}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        googleClientId: e.target.value,
+                      }))
+                    }
+                    className="font-mono text-sm"
+                    data-testid="input-google-client-id"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientSecret">Google OAuth Client Secret</Label>
+                  <div className="relative">
+                    <Input
+                      id="googleClientSecret"
+                      type={showKeys["googleClientSecret"] ? "text" : "password"}
+                      placeholder="Client Secret"
+                      value={formData.googleClientSecret}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          googleClientSecret: e.target.value,
+                        }))
+                      }
+                      className="pr-10 font-mono"
+                      data-testid="input-google-client-secret"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleShowKey("googleClientSecret")}
+                      data-testid="button-toggle-google-client-secret"
+                    >
+                      {showKeys["googleClientSecret"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="googleSpreadsheetId">Google Spreadsheet ID</Label>
+                  <Input
+                    id="googleSpreadsheetId"
+                    placeholder="1abcDEFghIJklmnOPqrStuVWxyz"
+                    value={formData.googleSpreadsheetId}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        googleSpreadsheetId: e.target.value,
+                      }))
+                    }
+                    className="font-mono text-sm"
+                    data-testid="input-google-spreadsheet-id"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use the ID from your Google Sheets URL (after /d/ and before /edit).
                   </p>
                 </div>
               </CardContent>

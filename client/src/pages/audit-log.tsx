@@ -206,7 +206,7 @@ export default function AuditLog() {
                           </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          {log.metadata && (
+                          {!!log.metadata && (
                             <span className="text-muted-foreground text-xs font-mono line-clamp-1 max-w-[300px]">
                               {formatMetadata(log.metadata)}
                             </span>

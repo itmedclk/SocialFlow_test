@@ -91,9 +91,9 @@ export function LogViewer() {
                       )}
                     </div>
                   </div>
-                  {log.metadata && (
+                  {!!log.metadata && (
                     <p className="text-slate-500 mt-1 pl-[76px] text-xs font-mono truncate">
-                      {JSON.stringify(log.metadata)}
+                      {formatMetadata(log.metadata)}
                     </p>
                   )}
                 </div>
