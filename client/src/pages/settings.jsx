@@ -176,6 +176,9 @@ export default function Settings() {
     var handleSave = function () {
         saveMutation.mutate(formData);
     };
+    var handleGoogleConnect = function () {
+        window.location.href = "/api/google/oauth/start";
+    };
     if (authLoading) {
         return (<Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -436,6 +439,19 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-primary/30 bg-primary/5 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Google connection</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(settings === null || settings === void 0 ? void 0 : settings.googleConnected)
+            ? "Connected. Posts will log to your sheet."
+            : "Connect your Google account to enable Sheets logging."}
+                    </p>
+                  </div>
+                  <Button type="button" variant={(settings === null || settings === void 0 ? void 0 : settings.googleConnected) ? "outline" : "default"} onClick={handleGoogleConnect} data-testid="button-google-connect">
+                    {(settings === null || settings === void 0 ? void 0 : settings.googleConnected) ? "Reconnect Google" : "Connect Google"}
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="googleClientId">Google OAuth Client ID</Label>
                   <Input id="googleClientId" placeholder="1234567890-abc.apps.googleusercontent.com" value={formData.googleClientId} onChange={function (e) {
@@ -461,6 +477,9 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Use the ID from your Google Sheets URL (after /d/ and before /edit).
                   </p>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  OAuth Redirect URI: <span className="font-mono">https://social-flow-test.replit.app/api/google/oauth/callback</span>
                 </div>
               </CardContent>
             </Card>
