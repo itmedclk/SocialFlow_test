@@ -282,6 +282,16 @@ export async function registerRoutes(
 
       const validatedData = partialSchema.parse(rawData);
 
+      // If changing from "scheduled" to "draft", set to "cancelled" instead
+      // This prevents the scheduler from re-scheduling the same post
+      if (validatedData.status === "draft") {
+        const existingPost = await storage.getPost(id, userId);
+        if (existingPost?.status === "scheduled") {
+          validatedData.status = "cancelled";
+          validatedData.scheduledFor = null;
+        }
+      }
+
       const post = await storage.updatePost(id, validatedData, userId);
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
@@ -292,7 +302,7 @@ export async function registerRoutes(
         postId: post.id,
         userId,
         level: "info",
-        message: `Post updated: "${post.sourceTitle}"`,
+        message: `Post updated: "${post.sourceTitle}"${post.status === "cancelled" ? " (cancelled)" : ""}`,
         metadata: { postId: post.id, updates: Object.keys(validatedData) },
       });
 

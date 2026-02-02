@@ -1,4 +1,58 @@
 import { storage } from "../storage";
+const FORBIDDEN_IMAGE_TERMS = [
+  "organ",
+  "organs",
+  "heart",
+  "lungs",
+  "brain",
+  "liver",
+  "kidney",
+  "stomach",
+  "intestine",
+  "colon",
+  "blood",
+  "vein",
+  "artery",
+  "surgery",
+  "medical",
+  "anatomy",
+  "x-ray",
+  "scan",
+  "mri",
+  "skeleton",
+  "muscle",
+  "nerve",
+  "tumor",
+  "wound",
+  "injury",
+  "disease",
+  "hospital",
+  "clinic",
+  "doctor",
+  "patient",
+];
+
+function normalizeImagePrompt(prompt: string): string {
+  let p = prompt.toLowerCase();
+
+  // Any health → convert to nature & lifestyle
+  p = p.replace(
+    /brain|mind|mental|cognitive|neural|focus|memory|clarity/g,
+    "calm",
+  );
+  p = p.replace(
+    /health|healthy|wellness|medical|healing|therapy/g,
+    "peaceful lifestyle",
+  );
+  p = p.replace(/body|human|person|people|face|head/g, "scene");
+
+  return p;
+}
+
+function isSafeImagePrompt(prompt: string): boolean {
+  const p = prompt.toLowerCase();
+  return !FORBIDDEN_IMAGE_TERMS.some((term) => p.includes(term));
+}
 
 export interface AiImageResult {
   url: string;
@@ -50,8 +104,16 @@ export async function generateAiImage(
       `[AI Image] Generating image with qwen-image-txt2img, endpoint: ${endpoint}`,
     );
 
-    // Enhance prompt to avoid humans
-    const enhancedPrompt = `${prompt}. No humans, no people, no faces, no body parts. Only objects, nature, food, plants, abstract art.`;
+    let safePrompt = normalizeImagePrompt(prompt);
+
+    if (!isSafeImagePrompt(safePrompt)) {
+      console.warn("[AI Image] Unsafe prompt blocked:", safePrompt);
+
+      safePrompt =
+        "A peaceful, healthy, uplifting wellness scene with plants, natural sunlight, warm colors, and a calm happy mood. No people, no medical elements, no body parts, no anatomy. Nature-inspired, clean, beautiful.";
+    }
+
+    const enhancedPrompt = `${safePrompt}. Ultra high quality, bright, modern, friendly.`;
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -61,6 +123,8 @@ export async function generateAiImage(
       },
       body: JSON.stringify({
         prompt: enhancedPrompt,
+        negative_prompt:
+          "people, person, human, face, body, skin, anatomy, organs, brain, heart, blood, medical, hospital, doctor, patient, surgery, skeleton, muscle, nerve, x-ray, scan",
         size: "1024*1024",
       }),
     });

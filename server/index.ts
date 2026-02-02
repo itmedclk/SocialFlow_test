@@ -65,7 +65,7 @@ app.use((req, res, next) => {
   // Set up auth routes first before registering other routes
   await setupAuth(app);
   registerAuthRoutes(app);
-  
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -102,6 +102,9 @@ app.use((req, res, next) => {
     log(`Serving on port ${port}`);
 
     // Start background scheduler for RSS fetching, AI processing, and publishing
-    startScheduler();
+    // startScheduler();
+    if (process.env.REPLIT_DEPLOYMENT === "production") {
+      startScheduler();
+    }
   });
 })();
